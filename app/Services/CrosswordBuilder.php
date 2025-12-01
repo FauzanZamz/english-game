@@ -54,6 +54,32 @@ class CrosswordBuilder
         usort($starts, fn($a,$b)=>$a[0]===$b[0] ? $a[1]<=>$b[1] : $a[0]<=>$b[0]);
         foreach ($starts as $i=>$info){ $positions[$info[2]]['number']=$i+1; }
 
+        // Flip the grid vertically so the layout matches the previous
+        // front-end `.reverse()` behavior without needing to reverse in JS.
+        $grid = array_reverse($grid);
+
+        // Adjust word positions to match the flipped grid rows.
+        //
+        // For ACROSS words:
+        //   every cell (row, col) -> (size-1-row, col), so the start row becomes:
+        //   row' = size - 1 - row
+        //
+        // For DOWN words:
+        //   cells (row+i, col) for i in [0..length-1] become
+        //   (size-1-(row+i), col) = (size-1-row-i, col)
+        //   which run from size-1-row   down to   size-1-(row+length-1)
+        //   To keep positions using an increasing row index for the top cell,
+        //   we set new start row to the minimum of those:
+        //     row' = size - (row + length)
+        foreach ($positions as $word => &$pos) {
+            if ($pos['direction'] === 'across') {
+                $pos['row'] = $size - 1 - $pos['row'];
+            } else { // down
+                $pos['row'] = $size - ($pos['row'] + $pos['length']);
+            }
+        }
+        unset($pos);
+
         return [$grid,$positions];
     }
 

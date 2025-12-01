@@ -1,3 +1,4 @@
+
 <x-app-layout>
 <div x-data="crossword()" class="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-blue-50 via-teal-50 to-emerald-50">
   <div class="max-w-6xl mx-auto p-6">
@@ -43,7 +44,6 @@
                       @click="onCellClick(r,c,$event)"
                       @keydown.backspace="onBackspace(r,c,$event)"
                       @keydown.delete="onDelete(r,c,$event)">
-                    <div v-show="getCellNumber(r,c)" class="absolute top-0 left-0 text-xs font-bold text-sky-700 pointer-events-none leading-none" style="font-size: 7px; padding: 1px 2px;" x-text="getCellNumber(r,c)"></div>
                   </div>
                 </template>
               </template>
@@ -107,10 +107,13 @@ function crossword(){
       .then(r => r.json())
       .then(j => {
         if (j.error){ this.error = j.error; return; }
-        this.size=j.size; this.solution=j.grid; this.definitions=j.definitions || {};
+        const rawGrid = j.grid;
+        this.size=j.size; this.solution=rawGrid.reverse(); this.definitions=j.definitions || {};
+
+        this.solution = rawGrid.slice().reverse();
         this.positions = j.positions || {};
         // grid input: '' untuk sel huruf; null untuk blok
-        this.grid = j.grid.map(row => row.map(cell => cell ? '' : null));
+        this.grid = this.solution.map(row => row.map(cell => cell ? '' : null));
         this.buildCoordMap();
         this.buildCellNumbers();
       })
@@ -139,33 +142,45 @@ function crossword(){
     },
 
     buildCellNumbers(){
+      // tidak perlu nomor lagi
       this.cellNumbers = {};
-      for (let w in this.positions){
-        const p = this.positions[w];
-        const key = `${p.row},${p.col}`;
-        // simpan nomor di awal kata
-        if (!this.cellNumbers[key]) this.cellNumbers[key] = p.number;
-        else this.cellNumbers[key] = Math.min(this.cellNumbers[key], p.number);
-      }
-    },
+},
 
     getCellNumber(r,c){
-      return this.cellNumbers[`${r},${c}`] || null;
-    },
+      // selalu tidak ada nomor
+      return null;
+},
 
     onCell(r,c,e){
-      const val = (e.target.value || '').toUpperCase().replace(/[^A-Z]/g,'');
-      e.target.value = val;
-      if (val && this.grid[r][c] !== null) this.grid[r][c] = val;
+      let val = (e.target.value || '').toUpperCase().replace(/[^A-Z]/g,'');
 
-      const coord = this.coordMap[`${r},${c}`] || {};
-      const dir = (this.currentCell && this.currentCell.direction) || (coord.across ? 'across' : (coord.down ? 'down' : null));
-      this.currentCell = { r, c, direction: dir, word: coord[dir] || null };
-
-      if (val && this.currentCell && this.currentCell.word){
-        this.focusNextInWord(r,c,this.currentCell.direction);
+      // pastikan cuma 1 huruf
+      if (val.length > 1) {
+        val = val.slice(-1);
       }
+      e.target.value = val;
+
+      // selalu sinkronkan isi grid dengan apa yang terlihat di input
+      if (this.grid[r][c] !== null) {
+        this.grid[r][c] = val; // bisa '' kalau dihapus
+      }
+
+      // tetap set currentCell supaya highlight & clues jalan
+      const coord = this.coordMap[`${r},${c}`] || {};
+      const dir =
+        (this.currentCell && this.currentCell.direction)
+        || (coord.across ? 'across' : (coord.down ? 'down' : null));
+
+      this.currentCell = {
+        r,
+        c,
+        direction: dir,
+        word: coord[dir] || null
+      };
+
+      // ⛔ TIDAK ADA auto-move lagi, baris focusNextInWord DIHAPUS
     },
+
 
     onCellClick(r,c,e){
       const coord = this.coordMap[`${r},${c}`] || {};
@@ -257,8 +272,87 @@ function crossword(){
       this.focusPrevInWord(r,c);
     },
 
+
+// Handle keyboard navigation
+    onKeydown(r, c, e) {
+      if (e.key === 'Backspace' && !this.grid[r][c]) {
+        e.preventDefault();
+        const prevCell = this.getPrevCell(r, c, this.lastDirection);
+        if (prevCell) {
+          const prevInput = document.querySelector(`[data-r="${prevCell.r}"][data-c="${prevCell.c}"]`);
+          if (prevInput && !prevInput.disabled) {
+            prevInput.focus();
+          }
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        this.lastDirection = 'across';
+        const next = this.getNextCell(r, c, 'across');
+        if (next) this.focusCell(next.r, next.c);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        this.lastDirection = 'across';
+        const prev = this.getPrevCell(r, c, 'across');
+        if (prev) this.focusCell(prev.r, prev.c);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.lastDirection = 'down';
+        const next = this.getNextCell(r, c, 'down');
+        if (next) this.focusCell(next.r, next.c);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.lastDirection = 'down';
+        const prev = this.getPrevCell(r, c, 'down');
+        if (prev) this.focusCell(prev.r, prev.c);
+      }
+    },
+
+    onFocus(r, c) {
+      // Update last direction based on current word
+      const wordInfo = this.getWordAtPosition(r, c);
+      if (wordInfo) {
+        this.lastDirection = wordInfo.direction;
+        this.lastCell = {r, c};
+      }
+    },
+
+    getNextCell(r, c, direction) {
+      if (direction === 'across') {
+        if (c + 1 < this.size && this.solution[r][c + 1]) {
+          return {r, c: c + 1};
+        }
+      } else {
+        if (r + 1 < this.size && this.solution[r + 1][c]) {
+          return {r: r + 1, c};
+        }
+      }
+      return null;
+    },
+
+    getPrevCell(r, c, direction) {
+      if (direction === 'across') {
+        if (c - 1 >= 0 && this.solution[r][c - 1]) {
+          return {r, c: c - 1};
+        }
+      } else {
+        if (r - 1 >= 0 && this.solution[r - 1][c]) {
+          return {r: r - 1, c};
+        }
+      }
+      return null;
+    },
+
+    focusCell(r, c) {
+      const input = document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+      if (input && !input.disabled) {
+        input.focus();
+      }
+    },
+
+
     submit(){
       const dur = Math.round((Date.now()-this.t0)/1000);
+      const gridToSubmit = this.grid.slice().reverse();
       fetch('{{ route('crossword.submit') }}', {
         method:'POST',
         headers:{ 'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json' },
