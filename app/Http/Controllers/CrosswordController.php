@@ -15,18 +15,11 @@ class CrosswordController extends Controller
         return view('crossword.index', compact('themes'));
     }
 
-    /**
-     * Generate puzzle seperti ttsv2.py:
-     * - pilih kata by tema & level (panjang tertentu)
-     * - validasi definisi (dictionaryapi.dev)
-     * - build grid dengan interseksi (CrosswordBuilder)
-     * - kembalikan grid + definitions + positions
-     */
     public function generate(Request $req, LexicoService $lex, CrosswordBuilder $builder)
     {
         $req->validate(['theme' => 'required', 'level' => 'required|in:beginner,expert']);
 
-        // Parameter per level (meniru ttsv2)
+        // Parameter per level 
         [$count, $minLen, $maxLen, $size] =
             $req->level === 'beginner' ? [5, 4, 6, 12] : [8, 6, 10, 15];
 
@@ -99,9 +92,7 @@ class CrosswordController extends Controller
         ]);
     }
 
-    /**
-     * Pengecekan jawaban, mirip ttsv2: benar per huruf + bonus full
-     */
+    
     public function submit(Request $req)
     {
         $req->validate(['grid' => 'required|array', 'duration_sec' => 'nullable|integer']);

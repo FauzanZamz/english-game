@@ -40,11 +40,21 @@
 
               <div class="mt-4 flex gap-2">
                 <input x-model="answer" placeholder="Ketik ejaan..."
-                       class="flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90">
+                       class="flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90"
+                       @keyup.enter="submit()">
                 <button @click="submit()" class="rounded-xl px-4 py-2 bg-emerald-500 text-white hover:bg-emerald-600">✅ Jawab</button>
                 <button @click="giveup()" class="rounded-xl px-4 py-2 bg-rose-500 text-white hover:bg-rose-600">🏳️ Menyerah</button>
               </div>
               <div class="mt-2 text-sm font-medium" :class="{'text-emerald-700': feedback.startsWith('✅'), 'text-rose-700': feedback.startsWith('❌')}" x-text="feedback"></div>
+            </div>
+          </template>
+
+          <template x-if="!roundActive && answered">
+            <div class="text-center">
+              <div class="mb-4 text-lg font-semibold" :class="{'text-emerald-700': feedback.startsWith('✅'), 'text-rose-700': feedback.startsWith('❌')}" x-text="feedback"></div>
+              <button @click="nextRound()" class="rounded-xl px-6 py-3 bg-sky-500 text-white font-semibold hover:bg-sky-600 shadow-lg">
+                ➡️ Kata Berikutnya
+              </button>
             </div>
           </template>
 
@@ -54,13 +64,15 @@
         </div>
       </div>
 
-      <!-- Right: wiki (selalu tampil per ronde) -->
+      <!-- Right: wiki (tampil hanya setelah jawab) -->
       <div class="space-y-4">
-        <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5">
-          <h3 class="font-bold text-sky-900">Explanation</h3>
-          <p class="text-sky-900/80 mt-1" x-text="wiki.extract"></p>
-          <img :src="wiki.image" x-show="wiki.image" class="mt-3 rounded-xl shadow">
-        </div>
+        <template x-if="answered">
+          <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5">
+            <h3 class="font-bold text-sky-900">Explanation</h3>
+            <p class="text-sky-900/80 mt-1" x-text="wiki.extract"></p>
+            <img :src="wiki.image" x-show="wiki.image" class="mt-3 rounded-xl shadow">
+          </div>
+        </template>
 
         <template x-if="sessionDone">
           <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
@@ -79,13 +91,23 @@ function spellingGame(){
     theme: '{{ $themes[0]->slug ?? "animals" }}',
     level: 'beginner',
     roundIdx: 0, score: 0, clues: [], wiki: {}, wordAudio: '',
-    answer: '', feedback: '', roundActive: false, sessionDone: false, t0: null,
+    answer: '', feedback: '', roundActive: false, answered: false, sessionDone: false, t0: null,
 
-    start(){ this.roundIdx=0; this.score=0; this.sessionDone=false; this.t0=Date.now(); this.nextRound(); },
+    start(){ 
+      this.roundIdx=0; 
+      this.score=0; 
+      this.sessionDone=false; 
+      this.answered=false;
+      this.t0=Date.now(); 
+      this.loadRound(); 
+    },
 
-    nextRound(){
+    loadRound(){
       if (this.roundIdx>=5){ this.finishSession(); return; }
-      this.answer=''; this.feedback=''; this.roundActive=true;
+      this.answer=''; 
+      this.feedback=''; 
+      this.roundActive=true;
+      this.answered=false;
       fetch('{{ route('spelling.new') }}',{method:'POST', headers:{
         'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
       }, body: JSON.stringify({theme:this.theme, level:this.level})})
@@ -101,8 +123,10 @@ function spellingGame(){
         'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
       }, body: JSON.stringify({answer:this.answer})})
       .then(r=>r.json()).then(j=>{
-        this.score+=j.scoreDelta; this.feedback = j.correct?'✅ Benar!':'❌ Salah. Jawaban: '+j.expected;
-        this.roundActive=false; this.roundIdx++; setTimeout(()=>this.nextRound(), 900);
+        this.score+=j.scoreDelta; 
+        this.feedback = j.correct?'✅ Benar!':'❌ Salah. Jawaban: '+j.expected;
+        this.roundActive=false; 
+        this.answered=true;
       })
     },
 
@@ -111,8 +135,15 @@ function spellingGame(){
         'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
       }, body: JSON.stringify({answer:'', giveup:true})})
       .then(r=>r.json()).then(j=>{
-        this.feedback = 'Menyerah. Kata: '+j.expected; this.roundActive=false; this.roundIdx++; setTimeout(()=>this.nextRound(), 900);
+        this.feedback = '🏳️ Menyerah. Kata: '+j.expected; 
+        this.roundActive=false; 
+        this.answered=true;
       })
+    },
+
+    nextRound(){
+      this.roundIdx++;
+      this.loadRound();
     },
 
     speakWord(){
