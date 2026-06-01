@@ -10,9 +10,17 @@
       </div>
       <div>
         <label class="block text-xs font-semibold text-sky-900/80">Level</label>
-        <select x-model="level" class="mt-1 border rounded-xl px-3 py-2 bg-white/90 focus:ring-sky-300 focus:border-sky-400">
-          <option value="beginner">Beginner</option>
-          <option value="expert">Expert</option>
+        <select x-model="level" @change="onLevelChange()"
+                class="mt-1 border rounded-xl px-3 py-2 bg-white/90 focus:ring-sky-300 focus:border-sky-400">
+          <option value="beginner">🌱 Beginner</option>
+          <option value="intermediate"
+                  :disabled="!spUnlockedLevels.intermediate"
+                  x-text="spUnlockedLevels.intermediate ? '🌿 Intermediate' : '🔒 Intermediate (terkunci)'">
+          </option>
+          <option value="expert"
+                  :disabled="!spUnlockedLevels.expert"
+                  x-text="spUnlockedLevels.expert ? '🔥 Expert' : '🔒 Expert (terkunci)'">
+          </option>
         </select>
       </div>
       <button @click="start()" class="ml-auto rounded-xl px-5 py-2.5 bg-sky-500 text-white shadow hover:bg-sky-600">
@@ -76,8 +84,42 @@
 
         <template x-if="sessionDone">
           <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
-            <p class="font-semibold text-emerald-700">Sesi selesai!</p>
+            <p class="font-semibold text-emerald-700">Sesi selesai! Skor: <span x-text="score"></span>/50</p>
             <a href="{{ route('leaderboard.spelling') }}" class="inline-block mt-2 px-4 py-2 rounded-full bg-emerald-600 text-white hover:bg-emerald-700">Lihat Leaderboard</a>
+          </div>
+        </template>
+
+        {{-- RL: Level unlock banner (shows right after session done) --}}
+        <template x-if="spNewLevelUnlocked">
+          <div class="rounded-2xl border-2 p-5 mt-2"
+               :class="spNewLevelUnlocked === 'expert'
+                 ? 'bg-gradient-to-br from-orange-50 to-red-50 border-red-300'
+                 : 'bg-gradient-to-br from-green-50 to-cyan-50 border-emerald-300'">
+            <div class="flex items-start gap-3">
+              <span class="text-3xl" x-text="spNewLevelUnlocked === 'intermediate' ? '🌿' : '🔥'"></span>
+              <div class="flex-1">
+                <p class="font-bold text-sm uppercase tracking-wide mb-1"
+                   :class="spNewLevelUnlocked === 'expert' ? 'text-red-700' : 'text-emerald-700'">
+                  Level Baru Terbuka!
+                </p>
+                <p class="text-sky-900/80 text-sm"
+                   x-text="spNewLevelUnlocked === 'intermediate'
+                     ? 'Performa Beginner kamu konsisten. Level Intermediate kini tersedia!'
+                     : 'Hebat! Kamu menguasai Intermediate. Level Expert kini tersedia!'">
+                </p>
+                <div class="flex gap-2 mt-3">
+                  <button @click="level = spNewLevelUnlocked; spNewLevelUnlocked = null; start();"
+                          class="rounded-xl px-4 py-2 font-semibold text-sm text-white shadow"
+                          :class="spNewLevelUnlocked === 'expert' ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'">
+                    🚀 Main Sekarang!
+                  </button>
+                  <button @click="spNewLevelUnlocked = null"
+                          class="rounded-xl px-4 py-2 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    Nanti
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </template>
       </div>
@@ -93,13 +135,29 @@ function spellingGame(){
     roundIdx: 0, score: 0, clues: [], wiki: {}, wordAudio: '',
     answer: '', feedback: '', roundActive: false, answered: false, sessionDone: false, t0: null,
 
-    start(){ 
-      this.roundIdx=0; 
-      this.score=0; 
-      this.sessionDone=false; 
+    /* ══ RL Adaptive Difficulty (3-level) ══
+       perf_score = max(0, min(100, round(score / 50 * 100)))
+       Unlock thresholds (avg over last 3 same-level sessions):
+         beginner  ≥ 60 → unlocks intermediate
+         intermediate ≥ 70 → unlocks expert */
+    spPerfHistory:    JSON.parse(localStorage.getItem('sp_perf') || '[]'),
+    spUnlockedLevels: @json($unlockedLevels),   /* server-side, per-akun */
+    spNewLevelUnlocked: null,   /* 'intermediate' | 'expert' | null */
+
+    /* guard: prevent selecting locked levels */
+    onLevelChange() {
+      if (this.level === 'intermediate' && !this.spUnlockedLevels.intermediate) this.level = 'beginner';
+      if (this.level === 'expert'       && !this.spUnlockedLevels.expert)       this.level = 'beginner';
+    },
+
+    start(){
+      this.roundIdx=0;
+      this.score=0;
+      this.sessionDone=false;
       this.answered=false;
-      this.t0=Date.now(); 
-      this.loadRound(); 
+      this.spNewLevelUnlocked=null;
+      this.t0=Date.now();
+      this.loadRound();
     },
 
     loadRound(){
@@ -163,10 +221,45 @@ function spellingGame(){
 
     finishSession(){
       this.sessionDone = true;
-      const dur = Math.round((Date.now()-this.t0)/1000);
-      fetch('{{ route('spelling.finish') }}',{method:'POST', headers:{
-        'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
-      }, body: JSON.stringify({duration_sec: dur})});
+      const dur = Math.round((Date.now() - this.t0) / 1000);
+
+      /* RL perf_score: normalize session score (max 50) to 0–100 */
+      const perfScore = Math.max(0, Math.min(100, Math.round(Math.max(0, this.score) / 50 * 100)));
+
+      /* Append to history, cap at 20 entries */
+      this.spPerfHistory.push({ score: perfScore, level: this.level, ts: Date.now() });
+      if (this.spPerfHistory.length > 20) this.spPerfHistory.shift();
+      try { localStorage.setItem('sp_perf', JSON.stringify(this.spPerfHistory)); } catch(e) {}
+
+      /* RL unlock: avg of last 3 sessions AT THIS LEVEL */
+      const sameLvl  = this.spPerfHistory.filter(h => h.level === this.level).slice(-3);
+      const levelAvg = sameLvl.length > 0
+        ? Math.round(sameLvl.reduce((s, x) => s + x.score, 0) / sameLvl.length)
+        : 0;
+
+      let justUnlocked = null;
+      if (this.level === 'beginner' && levelAvg >= 60 && !this.spUnlockedLevels.intermediate) {
+        this.spUnlockedLevels = { ...this.spUnlockedLevels, intermediate: true };
+        justUnlocked = 'intermediate';
+      } else if (this.level === 'intermediate' && levelAvg >= 70 && !this.spUnlockedLevels.expert) {
+        this.spUnlockedLevels = { ...this.spUnlockedLevels, expert: true };
+        justUnlocked = 'expert';
+      }
+      if (justUnlocked) {
+        this.spNewLevelUnlocked = justUnlocked;
+        /* Simpan unlock ke server (per-akun) */
+        fetch('{{ route('spelling.unlock') }}', {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level: justUnlocked })
+        });
+      }
+
+      fetch('{{ route('spelling.finish') }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration_sec: dur })
+      });
     }
   }
 }

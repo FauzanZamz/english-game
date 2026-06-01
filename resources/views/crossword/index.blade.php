@@ -95,16 +95,34 @@
   cursor: default !important;
   pointer-events: none;               /* cannot be edited */
 }
-/* ── RL unlock: "Go Expert" button glow ── */
-@keyframes expertGlow {
-  0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
-  50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+/* ── RL unlock: level-up button glow ── */
+@keyframes levelGlow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+  50%      { box-shadow: 0 0 0 10px rgba(99,102,241,0); }
 }
+.btn-unlock-inter {
+  background: linear-gradient(135deg,#22c55e,#0ea5e9);
+  color:#fff; animation: levelGlow 1.8s ease infinite;
+}
+.btn-unlock-inter:hover { background: linear-gradient(135deg,#16a34a,#0284c7); }
 .btn-unlock-expert {
   background: linear-gradient(135deg,#ef4444,#f97316);
-  color:#fff; animation: expertGlow 1.8s ease infinite;
+  color:#fff; animation: levelGlow 1.8s ease infinite;
 }
 .btn-unlock-expert:hover { background: linear-gradient(135deg,#dc2626,#ea580c); }
+
+/* ── RL: level unlock banner ── */
+.unlock-banner {
+  border-radius: 14px; padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  animation: fadeSlideIn 0.4s ease;
+  border: 2px solid;
+}
+.unlock-banner-inter { background: linear-gradient(135deg,#f0fdf4,#ecfeff); border-color: #6ee7b7; }
+.unlock-banner-expert { background: linear-gradient(135deg,#fff7ed,#fef2f2); border-color: #fca5a5; }
+
+/* ── Locked select option ── */
+option:disabled { color: #94a3b8; }
 
 /* ── Cell number badge ── */
 .cw-num {
@@ -323,9 +341,16 @@
         </div>
         <div>
           <p class="field-label">Difficulty</p>
-          <select x-model="level" class="cw-select" style="min-width:170px">
+          <select x-model="level" @change="onLevelChange()" class="cw-select" style="min-width:195px">
             <option value="beginner">🌱 Beginner — 12×12</option>
-            <option value="expert">🔥 Expert — 15×15</option>
+            <option value="intermediate"
+                    :disabled="!unlockedLevels.intermediate"
+                    x-text="unlockedLevels.intermediate ? '🌿 Intermediate — 13×13' : '🔒 Intermediate (terkunci)'">
+            </option>
+            <option value="expert"
+                    :disabled="!unlockedLevels.expert"
+                    x-text="unlockedLevels.expert ? '🔥 Expert — 15×15' : '🔒 Expert (terkunci)'">
+            </option>
           </select>
         </div>
 
@@ -343,12 +368,13 @@
           <button @click="submitted=false; clearGrid();" x-show="submitted" class="btn-primary btn-ghost">
             🔄 Try Again
           </button>
-          {{-- RL unlock: appears after RL recommends Expert --}}
-          <button x-show="expertUnlocked && level==='beginner'"
-                  @click="level='expert'; expertUnlocked=false; generate();"
-                  class="btn-primary btn-unlock-expert"
-                  title="AI mendeteksi kamu siap naik ke Expert!">
-            🔥 Go Expert!
+          {{-- RL unlock: jump to newly unlocked level --}}
+          <button x-show="newLevelUnlocked && level !== newLevelUnlocked"
+                  @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
+                  class="btn-primary"
+                  :class="newLevelUnlocked === 'expert' ? 'btn-unlock-expert' : 'btn-unlock-inter'"
+                  :title="'AI: kamu siap naik ke ' + (newLevelUnlocked === 'intermediate' ? 'Intermediate' : 'Expert') + '!'">
+            <span x-text="newLevelUnlocked === 'intermediate' ? '🌿 Go Intermediate!' : '🔥 Go Expert!'"></span>
           </button>
         </div>
       </div>
@@ -364,6 +390,34 @@
       <div class="result-banner mb-3" :class="resultPerfect ? 'success' : 'partial'">
         <span style="font-size:1.3rem" x-text="resultPerfect ? '🏆' : '📝'"></span>
         <span x-text="resultMsg"></span>
+      </div>
+    </template>
+
+    {{-- RL: Level unlock banner --}}
+    <template x-if="newLevelUnlocked">
+      <div class="unlock-banner mb-4"
+           :class="newLevelUnlocked === 'expert' ? 'unlock-banner-expert' : 'unlock-banner-inter'">
+        <span style="font-size:1.8rem" x-text="newLevelUnlocked === 'intermediate' ? '🌿' : '🔥'"></span>
+        <div style="flex:1">
+          <p style="margin:0 0 3px;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#15803d"
+             x-show="newLevelUnlocked === 'intermediate'">Level Baru Terbuka!</p>
+          <p style="margin:0 0 3px;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#b91c1c"
+             x-show="newLevelUnlocked === 'expert'">Level Baru Terbuka!</p>
+          <p style="margin:0;font-size:0.88rem;font-weight:600;color:#1e293b"
+             x-text="newLevelUnlocked === 'intermediate'
+               ? 'Selamat! Performa kamu cukup konsisten. Level Intermediate kini tersedia!'
+               : 'Luar biasa! Kamu menguasai Intermediate. Level Expert kini tersedia!'"></p>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
+                  class="btn-primary"
+                  :class="newLevelUnlocked === 'expert' ? 'btn-unlock-expert' : 'btn-unlock-inter'">
+            Main Sekarang
+          </button>
+          <button @click="newLevelUnlocked = null" class="btn-primary btn-ghost" style="padding:0.45rem 0.9rem">
+            Nanti
+          </button>
+        </div>
       </div>
     </template>
 
@@ -545,13 +599,18 @@ function crossword() {
 
     /* ══ Feature 1: Scattered hint letters ══
        hintCells: { "r,c": true } — cells pre-filled as hints (read-only, violet).
-       Beginner gets ~30% of letters as hints.
-       Expert gets none. */
+       Beginner: ~30%, Intermediate: ~20%, Expert: ~15%. */
     hintCells: {},
 
-    /* ══ Feature 2: RL Adaptive Difficulty ══ */
-    expertUnlocked: false,   /* true when RL avg ≥ 75 on beginner */
-    perfHistory: JSON.parse(localStorage.getItem('cw_perf') || '[]'),
+    /* ══ Feature 2: RL Adaptive Difficulty (3-level) ══
+       Levels: beginner → intermediate → expert
+       Unlock thresholds (avg perf_score over last 3 same-level sessions):
+         beginner  ≥ 60  → unlocks intermediate
+         intermediate ≥ 70 → unlocks expert
+       perf_score: accuracy*60 + speed*25 + backspace*15 (all weighted by accuracy) */
+    perfHistory:    JSON.parse(localStorage.getItem('cw_perf') || '[]'),
+    unlockedLevels: @json($unlockedLevels),   /* server-side, per-akun */
+    newLevelUnlocked: null,   /* 'intermediate' | 'expert' | null */
     diffRecommendation: null,
 
     /* ══ AI Feature 3: Naive Bayes Typo Detection ══ */
@@ -586,6 +645,12 @@ function crossword() {
       X:['A','I','P','T'],
       Y:['A','E','I','O'],
       Z:['A','E','I','O'],
+    },
+
+    /* ── level change guard (prevent selecting locked level) ── */
+    onLevelChange() {
+      if (this.level === 'intermediate' && !this.unlockedLevels.intermediate) this.level = 'beginner';
+      if (this.level === 'expert'       && !this.unlockedLevels.expert)       this.level = 'beginner';
     },
 
     /* ── timer ── */
@@ -667,8 +732,8 @@ function crossword() {
     */
     buildHintCells() {
       this.hintCells = {};
-      /* Beginner: 30% hints, Expert: 15% hints */
-      const hintRatio = this.level === 'beginner' ? 0.30 : 0.15;
+      /* Beginner: 30% hints, Intermediate: 20%, Expert: 15% */
+      const hintRatio = this.level === 'beginner' ? 0.30 : (this.level === 'intermediate' ? 0.20 : 0.15);
 
       /* Collect all playable cell coordinates */
       const cells = [];
@@ -1030,17 +1095,17 @@ function crossword() {
       .then(r=>r.json())
       .then(j=>{
         this.submitted=true;
-        /* per-cell colouring */
+        /* per-cell colouring — derived client-side from grid vs solution
+           DOWN coordinate: huruf pertama di row = pos.row+pos.length-1, turun ke pos.row */
         const res={};
         for(const w in this.positions){
           const pos=this.positions[w];
           for(let i=0;i<pos.length;i++){
-            const cr=pos.direction==='across'?pos.row:pos.row+i;
-            const cc=pos.direction==='across'?pos.col+i:pos.col;
+            const cr = pos.direction==='across' ? pos.row : (pos.row + pos.length - 1 - i);
+            const cc = pos.direction==='across' ? pos.col + i : pos.col;
             const entered=(this.grid[cr]&&this.grid[cr][cc])?this.grid[cr][cc].toUpperCase():'';
             const correct=(this.solution[cr]&&this.solution[cr][cc])?this.solution[cr][cc].toUpperCase():'';
             const key=`${cr},${cc}`;
-            /* only mark playable (white) cells */
             if(!res[key]&&correct) res[key]=(entered&&entered===correct)?'ok':'bad';
           }
         }
@@ -1051,61 +1116,80 @@ function crossword() {
           this.scorePop=false;
           this.$nextTick(()=>{ this.scorePop=true; setTimeout(()=>{ this.scorePop=false; },500); });
         }
-        this.resultPerfect=(j.correct===j.total);
-        this.resultMsg=`${j.correct}/${j.total} correct · ${j.score} pts · Time: ${this.timerDisplay}`;
+        this.resultPerfect = (j.wordsCorrect === j.totalWords);
+        this.resultMsg = `${j.wordsCorrect}/${j.totalWords} kata benar · ${j.score}/100 pts · Waktu: ${this.timerDisplay}`;
 
-        /* ══ AI Feature 2: Adaptive Difficulty — RL-style signal ══
-           Scoring rules (0-100):
-           - accuracy   (0-60 pts): correct/total × 60  ← dominant signal
-           - speed      (0-25 pts): only meaningful when accuracy ≥ 50%
-                        speed is multiplied by accuracy so fast+wrong = 0
-           - backspaces (0-15 pts): multiplied by accuracy so it can't
-                        compensate for low correctness
-           Gate: if accuracy < 30%, total score is capped at 20
-                 regardless of speed or backspaces. */
-        const accuracy   = j.total > 0 ? (j.correct / j.total) : 0;
-        const speedSecs  = dur;
-
-        /* Speed score: full points for ≤90s, zero for ≥360s.
-           Then SCALED by accuracy — fast+wrong earns nothing. */
-        const rawSpeed   = Math.max(0, Math.min(25, 25 - ((speedSecs - 90) / 270) * 25));
-        const speedScore = rawSpeed * accuracy;          /* 0 if accuracy = 0 */
-
-        /* Backspace score: also scaled by accuracy */
+        /* ══ RL Adaptive Difficulty (3-level) ══
+           perf_score (0–100):
+             accuracy*60  — word-based accuracy (dominant signal)
+             speed*25     — scaled by accuracy, baseline per level
+             backspace*15 — scaled by accuracy
+           Gate: accuracy < 30% → cap at 20 */
+        const accuracy   = j.totalWords > 0 ? (j.wordsCorrect / j.totalWords) : 0;
+        const baseTime   = this.level === 'beginner' ? 120 : (this.level === 'intermediate' ? 180 : 300);
+        const rawSpeed   = Math.max(0, Math.min(25, 25 - ((dur - baseTime) / (baseTime * 2)) * 25));
+        const speedScore = rawSpeed * accuracy;
         const backspaces = this.backspaceCount || 0;
         const rawBS      = Math.max(0, 15 - Math.min(15, backspaces * 0.75));
-        const bsScore    = rawBS * accuracy;             /* 0 if accuracy = 0 */
-
-        /* Raw total */
-        let perfScore = Math.round(accuracy * 60 + speedScore + bsScore);
-
-        /* Hard gate: accuracy < 30% → cap at 20 */
+        const bsScore    = rawBS * accuracy;
+        let perfScore    = Math.round(accuracy * 60 + speedScore + bsScore);
         if (accuracy < 0.30) perfScore = Math.min(perfScore, 20);
 
-        /* Store in history (max 10 sessions) */
+        /* Append to history, cap at 20 entries */
         this.perfHistory.push({ score: perfScore, level: this.level, ts: Date.now() });
-        if(this.perfHistory.length>10) this.perfHistory.shift();
-        try { localStorage.setItem('cw_perf', JSON.stringify(this.perfHistory)); } catch(e){}
+        if (this.perfHistory.length > 20) this.perfHistory.shift();
+        try { localStorage.setItem('cw_perf', JSON.stringify(this.perfHistory)); } catch(e) {}
 
-        /* RL reward signal: average last 3 sessions */
-        const recent = this.perfHistory.slice(-3);
-        const avg    = recent.reduce((s,x)=>s+x.score,0)/recent.length;
+        /* RL unlock: avg of last 3 sessions AT THIS LEVEL */
+        const sameLvl  = this.perfHistory.filter(h => h.level === this.level).slice(-3);
+        const levelAvg = sameLvl.length > 0
+          ? Math.round(sameLvl.reduce((s, x) => s + x.score, 0) / sameLvl.length)
+          : 0;
 
-        let rec;
-        if(this.level==='beginner'){
-          if(avg>=75){
-            rec={ label:'Naik ke Expert!', message:'Performa kamu sangat baik di Beginner (avg '+Math.round(avg)+'/100). AI merekomendasikan coba Expert.', badgeClass:'diff-hard' };
-            this.expertUnlocked=true;  /* RL unlocks the Go Expert button */
-          }
-          else if(avg>=50) rec={ label:'Pertahankan Beginner', message:'Kamu sudah cukup konsisten. Terus latih kecepatan dan akurasi.', badgeClass:'diff-medium' };
-          else rec={ label:'Beginner — terus berlatih', message:'Fokus pada akurasi dulu. Jangan terburu-buru mengisi jawaban.', badgeClass:'diff-easy' };
-        } else {
-          if(avg>=75) rec={ label:'Expert — sangat bagus!', message:'Performa Expert kamu luar biasa (avg '+Math.round(avg)+'/100). Kamu sudah mahir!', badgeClass:'diff-hard' };
-          else if(avg>=40) rec={ label:'Tetap di Expert', message:'Progres yang bagus di Expert. Terus tingkatkan kecepatan.', badgeClass:'diff-medium' };
-          else rec={ label:'Coba Beginner dulu', message:'Expert cukup sulit. AI sarankan kembali ke Beginner untuk membangun kepercayaan diri.', badgeClass:'diff-easy' };
+        let justUnlocked = null;
+        if (this.level === 'beginner' && levelAvg >= 60 && !this.unlockedLevels.intermediate) {
+          this.unlockedLevels = { ...this.unlockedLevels, intermediate: true };
+          justUnlocked = 'intermediate';
+        } else if (this.level === 'intermediate' && levelAvg >= 70 && !this.unlockedLevels.expert) {
+          this.unlockedLevels = { ...this.unlockedLevels, expert: true };
+          justUnlocked = 'expert';
         }
-        this.diffRecommendation=rec;
-        this.backspaceCount=0; /* reset for next game */
+        if (justUnlocked) {
+          this.newLevelUnlocked = justUnlocked;
+          /* Simpan unlock ke server (per-akun) */
+          fetch('{{ route('crossword.unlock') }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: justUnlocked })
+          });
+        }
+
+        /* Recommendation message (3-level aware) */
+        let rec;
+        if (this.level === 'beginner') {
+          if (justUnlocked === 'intermediate' || (levelAvg >= 60 && this.unlockedLevels.intermediate))
+            rec = { label:'Naik ke Intermediate!', message:'Bagus! Rata-rata skor Beginner kamu '+levelAvg+'/100. Level Intermediate sudah terbuka!', badgeClass:'diff-medium' };
+          else if (levelAvg >= 40)
+            rec = { label:'Terus Berlatih', message:'Konsistensi bagus. Raih rata-rata ≥ 60 untuk membuka Intermediate (sekarang: '+levelAvg+'/100).', badgeClass:'diff-easy' };
+          else
+            rec = { label:'Fokus Akurasi', message:'Fokus isi jawaban yang benar dulu. Target rata-rata ≥ 60 untuk unlock Intermediate.', badgeClass:'diff-easy' };
+        } else if (this.level === 'intermediate') {
+          if (justUnlocked === 'expert' || (levelAvg >= 70 && this.unlockedLevels.expert))
+            rec = { label:'Naik ke Expert!', message:'Hebat! Rata-rata Intermediate kamu '+levelAvg+'/100. Level Expert sudah terbuka!', badgeClass:'diff-hard' };
+          else if (levelAvg >= 50)
+            rec = { label:'Progress Bagus', message:'Terus tingkatkan! Raih rata-rata ≥ 70 untuk membuka Expert (sekarang: '+levelAvg+'/100).', badgeClass:'diff-medium' };
+          else
+            rec = { label:'Pertahankan Intermediate', message:'Fokus pada kecepatan dan akurasi. Target rata-rata ≥ 70 untuk unlock Expert.', badgeClass:'diff-medium' };
+        } else { // expert
+          if (levelAvg >= 75)
+            rec = { label:'Expert — Luar Biasa!', message:'Performa Expert kamu sangat tinggi (avg '+levelAvg+'/100). Kamu sudah mahir!', badgeClass:'diff-hard' };
+          else if (levelAvg >= 50)
+            rec = { label:'Tetap di Expert', message:'Progres Expert yang bagus (avg '+levelAvg+'/100). Terus tingkatkan kecepatan.', badgeClass:'diff-medium' };
+          else
+            rec = { label:'Expert — Terus Berlatih', message:'Expert memang sulit. Fokus akurasi terlebih dahulu.', badgeClass:'diff-easy' };
+        }
+        this.diffRecommendation = rec;
+        this.backspaceCount = 0;
       })
       .catch(()=>{ this.error='Submit failed — please try again.'; });
     }

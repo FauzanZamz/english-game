@@ -16,11 +16,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/spelling/new-round', [SpellingBeeController::class,'newRound'])->name('spelling.new');
     Route::post('/spelling/answer', [SpellingBeeController::class,'answer'])->name('spelling.answer');
     Route::post('/spelling/finish', [SpellingBeeController::class,'finish'])->name('spelling.finish');
+    Route::post('/spelling/unlock', [SpellingBeeController::class,'unlockLevel'])->name('spelling.unlock');
 
     // Crossword
     Route::get('/crossword', [CrosswordController::class,'index'])->name('crossword.index');
     Route::post('/crossword/generate', [CrosswordController::class,'generate'])->name('crossword.generate');
     Route::post('/crossword/submit', [CrosswordController::class,'submit'])->name('crossword.submit');
+    Route::post('/crossword/unlock', [CrosswordController::class,'unlockLevel'])->name('crossword.unlock');
 
     // Leaderboard
     Route::get('/leaderboard/spelling', [LeaderboardController::class,'spelling'])->name('leaderboard.spelling');

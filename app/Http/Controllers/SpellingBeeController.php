@@ -4,30 +4,52 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\{Word, WordTheme, Game, Play, PlayEvent};
+use App\Models\{Word, WordTheme, Game, Play, PlayEvent, UserLevelUnlock};
 use App\Services\LexicoService;
 
 class SpellingBeeController extends Controller
 {
     public function index()
     {
-        $themes = WordTheme::all();
-        return view('spelling.index', compact('themes'));
+        $themes  = WordTheme::all();
+        $unlocks = UserLevelUnlock::where('user_id', auth()->id())
+            ->where('game', 'spelling')
+            ->pluck('level');
+
+        $unlockedLevels = [
+            'intermediate' => $unlocks->contains('intermediate'),
+            'expert'       => $unlocks->contains('expert'),
+        ];
+
+        return view('spelling.index', compact('themes', 'unlockedLevels'));
+    }
+
+    public function unlockLevel(Request $req)
+    {
+        $req->validate(['level' => 'required|in:intermediate,expert']);
+
+        UserLevelUnlock::firstOrCreate([
+            'user_id' => auth()->id(),
+            'game'    => 'spelling',
+            'level'   => $req->level,
+        ], ['unlocked_at' => now()]);
+
+        return response()->json(['ok' => true, 'level' => $req->level]);
     }
 
     public function newRound(Request $req, LexicoService $lex)
     {
-        $req->validate(['theme'=>'required', 'level'=>'required|in:beginner,expert']);
+        $req->validate(['theme'=>'required', 'level'=>'required|in:beginner,intermediate,expert']);
 
         $theme = WordTheme::where('slug', $req->theme)->firstOrFail();
         $level = $req->level;
 
         $query = Word::where('theme_id', $theme->id);
-        if ($level === 'beginner') {
-            $query->whereBetween(DB::raw('LENGTH(text)'), [3,6]);
-        } else {
-            $query->where(DB::raw('LENGTH(text)'), '>', 6);
-        }
+        match($level) {
+            'beginner'     => $query->whereBetween(DB::raw('LENGTH(text)'), [3, 5]),
+            'intermediate' => $query->whereBetween(DB::raw('LENGTH(text)'), [5, 7]),
+            default        => $query->where(DB::raw('LENGTH(text)'), '>', 7),  // expert
+        };
 
         $candidates = $query->inRandomOrder()->limit(40)->pluck('text');
 

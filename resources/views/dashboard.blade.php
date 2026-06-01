@@ -48,9 +48,9 @@
 
 <!-- Leaderboards -->
 <div class="mt-8 flex flex-wrap gap-3">
-    <a href="{{ route('leaderboard.spelling') }}" 
+    <a href="{{ route('leaderboard.spelling') }}"
         class="px-4 py-2 rounded-full bg-fuchsia-100 text-fuchsia-700 border hover:bg-fuchsia-200 transition-all duration-200 transform hover:scale-105">🏆 Leaderboard Spelling</a>
-    <a href="{{ route('leaderboard.crossword') }}" 
+    <a href="{{ route('leaderboard.crossword') }}"
         class="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 border hover:bg-emerald-200 transition-all duration-200 transform hover:scale-105">🏆 Leaderboard Crossword</a>
 </div>
   <style>
