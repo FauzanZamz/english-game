@@ -299,11 +299,11 @@ option:disabled { color: #94a3b8; }
 {{-- ════════════════════════════════════════
      PAGE
 ════════════════════════════════════════ --}}
-<div x-data="crossword()" class="cw-wrap min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-50 to-indigo-50/60">
-  <div class="max-w-7xl mx-auto px-4 py-7 sm:px-6 lg:px-8">
+<div x-data="crossword()" class="cw-wrap min-h-[calc(100vh-4rem)] bg-gradient-to-b from-pink-50 via-purple-50 to-blue-50">
+  <div class="max-w-7xl mx-auto p-6">
 
     {{-- ── Page title row ── --}}
-    <div class="cw-header-row flex flex-wrap items-center gap-3 mb-6">
+    <div class="cw-header-row flex flex-wrap items-center gap-3 mt-4 mb-6 ">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
           <span style="font-size:1.15rem">🧩</span>
@@ -329,7 +329,7 @@ option:disabled { color: #94a3b8; }
     </div>
 
     {{-- ── Controls card ── --}}
-    <div class="cw-card p-4 mb-5">
+    <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-4 mb-6">
       <div class="cw-controls-row" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px">
         <div>
           <p class="field-label">Theme</p>
