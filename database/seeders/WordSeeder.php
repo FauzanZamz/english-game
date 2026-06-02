@@ -17,7 +17,7 @@ class WordSeeder extends Seeder
         ];
         foreach ($themes as $slug=>$name) {
             $theme = WordTheme::firstOrCreate(['slug'=>$slug], ['name'=>$name]);
-            $file = storage_path('app/words/'.str_replace('-', '_', $slug).'.json');
+            $file = resource_path('words/'.str_replace('-', '_', $slug).'.json');
             if (file_exists($file)) {
                 $list = json_decode(file_get_contents($file), true) ?: [];
                 foreach ($list as $w) {
