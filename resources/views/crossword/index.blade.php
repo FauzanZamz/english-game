@@ -249,7 +249,7 @@ option:disabled { color: #94a3b8; }
 
 @media (max-width: 640px) {
   /* Reduce base cell token; JS auto-fit will scale the whole grid to fit viewport */
-  :root { --cw-cell: 1.7rem; }
+  :root { --cw-cell: 1.25rem; }
   .cw-cell { font-size: 0.75rem !important; border-radius: 4px !important; }
   #cw-grid > div { width: var(--cw-cell) !important; height: var(--cw-cell) !important; }
   #cw-grid { gap: 2px !important; padding: 2px !important; }
