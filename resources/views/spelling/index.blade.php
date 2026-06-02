@@ -126,17 +126,19 @@
                 <template x-for="c in clues"><li x-text="c"></li></template>
               </ul>
 
-              <div class="mt-4 flex gap-2">
+              <div class="mt-4 flex flex-col sm:flex-row gap-2">
                 <input x-model="answer" placeholder="Ketik ejaan kata…" :disabled="busy"
-                       class="flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90 disabled:opacity-60"
-                       @keyup.enter="submit()" x-ref="answerInput">
-                <button @click="submit()" :disabled="busy || !answer.trim()"
-                        class="rounded-xl px-4 py-2 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                  ✅ Answer
-                </button>
-                <button @click="giveup()" :disabled="busy"
-                        class="rounded-xl px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50">
-                  🏳️ Surrender
+              class="w-full sm:flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90 disabled:opacity-60"
+              @keyup.enter="submit()" x-ref="answerInput">
+
+    <div class="flex gap-2">
+        <button @click="submit()" :disabled="busy || !answer.trim()"
+                class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
+            ✅ Answer
+        </button>
+        <button @click="giveup()" :disabled="busy"
+                class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50">
+            🏳️ Surrender
                 </button>
               </div>
             </div>
