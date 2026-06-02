@@ -16,7 +16,10 @@
    • All text legible regardless of theme
 ═══════════════════════════════════════════════ */
 
-.cw-wrap { font-family: 'Poppins', 'Segoe UI', sans-serif; }
+/* Cell-size token — overridden to 1.7rem on mobile */
+:root { --cw-cell: 2.4rem; }
+
+.cw-wrap { font-family: 'Poppins', 'Segoe UI', sans-serif; overflow-x: hidden; }
 
 /* ── Grid outer shell ── */
 #cw-grid {
@@ -30,8 +33,8 @@
 /* ── Individual cell ── */
 .cw-cell {
   display: block;
-  width: 2.4rem; height: 2.4rem;
-  text-align: center; line-height: 2.4rem;
+  width: var(--cw-cell); height: var(--cw-cell);
+  text-align: center; line-height: var(--cw-cell);
   font-family: inherit;
   font-size: 0.875rem; font-weight: 700;
   text-transform: uppercase;
@@ -245,14 +248,13 @@ option:disabled { color: #94a3b8; }
 .cw-mobile-clues { display: none; }
 
 @media (max-width: 640px) {
-  /* smaller cells */
-  .cw-cell {
-    width: 1.9rem !important; height: 1.9rem !important;
-    font-size: 0.78rem !important; line-height: 1.9rem !important;
-    border-radius: 4px !important;
-  }
-  #cw-grid > div { width: 1.9rem !important; height: 1.9rem !important; }
+  /* Reduce base cell token; JS auto-fit will scale the whole grid to fit viewport */
+  :root { --cw-cell: 1.7rem; }
+  .cw-cell { font-size: 0.75rem !important; border-radius: 4px !important; }
+  #cw-grid > div { width: var(--cw-cell) !important; height: var(--cw-cell) !important; }
   #cw-grid { gap: 2px !important; padding: 2px !important; }
+  /* Remove fixed min-height so the viewport shrinks to match the scaled grid */
+  #cw-panzoom-viewport { min-height: unset !important; padding: 12px 0 !important; }
 
   /* single-column layout */
   .cw-main-layout { grid-template-columns: 1fr !important; }
@@ -293,6 +295,49 @@ option:disabled { color: #94a3b8; }
 .cw-cell:not(:disabled).bayes-warn {
   box-shadow: 0 0 0 2px #f59e0b, inset 0 0 0 1px #fef3c7;
   background: #fffbeb; color: #78350f;
+}
+
+/* ── Pan-zoom grid viewport ── */
+#cw-panzoom-viewport {
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 4px;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#cw-panzoom-inner {
+  transform-origin: center center;
+  will-change: transform;
+  display: inline-flex;
+  flex-shrink: 0;       /* keep natural width so computeFitScale() measures correctly */
+  touch-action: none;
+}
+#cw-zoom-reset {
+  display: none;
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 20;
+  background: rgba(15,23,42,0.62);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .02em;
+  backdrop-filter: blur(4px);
+}
+@media (min-width: 641px) {
+  /* Desktop: restore horizontal scroll if grid ever overflows */
+  #cw-panzoom-viewport { overflow-x: auto; }
 }
 </style>
 
@@ -444,7 +489,7 @@ option:disabled { color: #94a3b8; }
 
     {{-- ── Main layout ── --}}
     <template x-if="grid.length">
-      <div class="cw-main-layout fade-in" style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start">
+      <div class="cw-main-layout fade-in grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 lg:gap-[18px] items-start">
 
         {{-- LEFT: Grid panel --}}
         <div class="cw-card p-5">
@@ -457,38 +502,41 @@ option:disabled { color: #94a3b8; }
             <span style="font-size:0.75rem;font-weight:700;color:#64748b;font-family:monospace" x-text="`${filledCount}/${totalCells}`"></span>
           </div>
 
-          {{-- Grid (scrollable on small screens) --}}
-          <div style="overflow-x:auto;padding-bottom:4px;background:transparent;display:flex;justify-content:center;align-items:center;min-height:300px">
-            <div id="cw-grid" :style="`grid-template-columns: repeat(${size}, 2.4rem);`">
-              <template x-for="(row, r) in grid" :key="'r'+r">
-                <template x-for="(cell, c) in row" :key="'c'+c">
-                  <div style="position:relative;width:2.4rem;height:2.4rem">
-                    <span class="cw-num" x-text="cellNumbers[r+','+c] || ''"></span>
-                    <input
-                      :data-r="r" :data-c="c"
-                      maxlength="1"
-                      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
-                      :value="grid[r][c] || ''"
-                      class="cw-cell"
-                      :class="{
-                        'active-cursor' : isCursorCell(r,c),
-                        'active-word'   : isActiveCell(r,c) && !isCursorCell(r,c),
-                        'cell-correct'  : submitted && cellResult[r+','+c] === 'ok',
-                        'cell-incorrect': submitted && cellResult[r+','+c] === 'bad',
-                        'bayes-warn'    : !submitted && bayesWarn[r+','+c],
-                        'hint-letter'   : hintCells[r+','+c]
-                      }"
-                      :disabled="!solution[r] || !solution[r][c]"
-                      :readonly="hintCells[r+','+c]"
-                      @input="onCell(r,c,$event)"
-                      @click="onCellClick(r,c,$event)"
-                      @keydown="onKeydown(r,c,$event)"
-                    >
-                  </div>
+          {{-- Grid: pan-and-zoom on mobile touch, horizontal-scroll on desktop --}}
+          <div id="cw-panzoom-viewport">
+            <button id="cw-zoom-reset" onclick="cwResetZoom()">⊖ Reset Zoom</button>
+            <div id="cw-panzoom-inner">
+              <div id="cw-grid" :style="`grid-template-columns: repeat(${size}, var(--cw-cell));`">
+                <template x-for="(row, r) in grid" :key="'r'+r">
+                  <template x-for="(cell, c) in row" :key="'c'+c">
+                    <div style="position:relative;width:var(--cw-cell);height:var(--cw-cell)">
+                      <span class="cw-num" x-text="cellNumbers[r+','+c] || ''"></span>
+                      <input
+                        :data-r="r" :data-c="c"
+                        maxlength="1"
+                        autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+                        :value="grid[r][c] || ''"
+                        class="cw-cell"
+                        :class="{
+                          'active-cursor' : isCursorCell(r,c),
+                          'active-word'   : isActiveCell(r,c) && !isCursorCell(r,c),
+                          'cell-correct'  : submitted && cellResult[r+','+c] === 'ok',
+                          'cell-incorrect': submitted && cellResult[r+','+c] === 'bad',
+                          'bayes-warn'    : !submitted && bayesWarn[r+','+c],
+                          'hint-letter'   : hintCells[r+','+c]
+                        }"
+                        :disabled="!solution[r] || !solution[r][c]"
+                        :readonly="hintCells[r+','+c]"
+                        @input="onCell(r,c,$event)"
+                        @click="onCellClick(r,c,$event)"
+                        @keydown="onKeydown(r,c,$event)"
+                      >
+                    </div>
+                  </template>
                 </template>
-              </template>
-            </div>
-          </div>
+              </div>
+            </div>{{-- /cw-panzoom-inner --}}
+          </div>{{-- /cw-panzoom-viewport --}}
 
           {{-- Active clue strip below grid --}}
           <div class="cw-active-clue-strip" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px" x-show="activeClues.across || activeClues.down">
@@ -718,6 +766,8 @@ function crossword() {
         this.buildClueLists();
         this.buildHintCells();   /* scatter pre-filled hint letters */
         this.startTimer();
+        /* After Alpine renders all cells, auto-fit the grid to the mobile viewport */
+        this.$nextTick(() => { this.$nextTick(() => { window.cwFitGrid && window.cwFitGrid(); }); });
       })
       .catch(()=>{ this.error='Network error — please try again.'; })
       .finally(()=>{ this.loading=false; });
@@ -1195,6 +1245,131 @@ function crossword() {
     }
   };
 }
+</script>
+
+<script>
+/* ═══════════════════════════════════════════
+   Pan-and-zoom for the crossword grid
+   — touch only (mobile ≤ 640 px)
+   — pinch: zoom in/out (0.6× – 3.5×)
+   — single-finger drag: pan when zoomed in
+   — "Reset Zoom" button snaps back to 1×
+═══════════════════════════════════════════ */
+(function () {
+  /* Only activate on touch-capable / narrow screens */
+  if (!('ontouchstart' in window)) return;
+
+  let fitScale = 1;          /* scale that makes the grid fit the viewport width */
+  let scale = 1, panX = 0, panY = 0;
+  const MAX = 3.5;
+
+  let isPinching  = false, lastDist = 0;
+  let isSinglePan = false, spStartX = 0, spStartY = 0, spPanX0 = 0, spPanY0 = 0;
+
+  const vp  = () => document.getElementById('cw-panzoom-viewport');
+  const inn = () => document.getElementById('cw-panzoom-inner');
+  const rb  = () => document.getElementById('cw-zoom-reset');
+
+  function applyTransform() {
+    const el = inn(); if (!el) return;
+    el.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+    const btn = rb();
+    if (btn) btn.style.display =
+      (scale > fitScale * 1.08 || Math.abs(panX) > 2 || Math.abs(panY) > 2) ? 'block' : 'none';
+  }
+
+  function clampPan() {
+    const v = vp(), el = inn(); if (!v || !el) return;
+    const vpW = v.clientWidth, vpH = v.clientHeight;
+    const natW = el.offsetWidth, natH = el.offsetHeight;
+    const limX = Math.max(0, (natW * scale - vpW) / 2);
+    const limY = Math.max(0, (natH * scale - vpH) / 2);
+    panX = Math.max(-limX, Math.min(limX, panX));
+    panY = Math.max(-limY, Math.min(limY, panY));
+    if (natW * scale <= vpW) panX = 0;
+    if (natH * scale <= vpH) panY = 0;
+  }
+
+  /* Compute scale that exactly fits the grid's natural width into the viewport */
+  function computeFitScale() {
+    const v = vp(), el = inn();
+    if (!v || !el) return 1;
+    const saved = el.style.transform;
+    el.style.transform = 'none';       /* strip transform to measure natural size */
+    const natW = el.offsetWidth;
+    el.style.transform = saved;
+    const vpW = v.clientWidth;
+    if (!vpW || !natW) return 1;
+    return Math.min(1, (vpW - 16) / natW);   /* 8 px breathing room each side */
+  }
+
+  /* Auto-fit: shrink grid to fill viewport width, reset pan */
+  function fitToViewport() {
+    fitScale = computeFitScale();
+    scale = fitScale; panX = 0; panY = 0;
+    applyTransform();
+  }
+
+  function touchDist(t) {
+    return Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
+  }
+
+  document.addEventListener('touchstart', function (e) {
+    const v = vp(); if (!v || !v.contains(e.target)) return;
+    if (e.touches.length === 2) {
+      isPinching = true; isSinglePan = false;
+      lastDist = touchDist(e.touches);
+      e.preventDefault();
+    } else if (e.touches.length === 1 && scale > fitScale * 1.1) {
+      isSinglePan = true;
+      spStartX = e.touches[0].clientX; spStartY = e.touches[0].clientY;
+      spPanX0 = panX; spPanY0 = panY;
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchmove', function (e) {
+    const v = vp(); if (!v || !v.contains(e.target)) return;
+    if (isPinching && e.touches.length >= 2) {
+      e.preventDefault();
+      const nd = touchDist(e.touches);
+      scale    = Math.min(MAX, Math.max(fitScale * 0.95, scale * (nd / lastDist)));
+      lastDist = nd;
+      clampPan(); applyTransform();
+    } else if (isSinglePan && e.touches.length === 1 && scale > fitScale * 1.1) {
+      e.preventDefault();
+      panX = spPanX0 + (e.touches[0].clientX - spStartX);
+      panY = spPanY0 + (e.touches[0].clientY - spStartY);
+      clampPan(); applyTransform();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) isPinching  = false;
+    if (e.touches.length === 0) {
+      isSinglePan = false;
+      if (scale < fitScale * 0.96) fitToViewport();   /* snap back if over-pinched */
+    }
+  });
+
+  /* Global handles: called from Alpine generate() and from reset button */
+  window.cwResetZoom = function () { fitToViewport(); };
+  window.cwFitGrid   = fitToViewport;
+
+  /* Fallback observer: catches any case where Alpine renders the grid
+     outside the normal generate() flow (e.g. hot-reload, back-nav). */
+  const bodyObs = new MutationObserver(function () {
+    const el = inn();
+    if (!el || el._pzRO) return;
+    el._pzRO = new ResizeObserver(function () {
+      requestAnimationFrame(fitToViewport);
+    });
+    el._pzRO.observe(el);
+    requestAnimationFrame(function () { requestAnimationFrame(fitToViewport); });
+  });
+  document.addEventListener('DOMContentLoaded', function () {
+    bodyObs.observe(document.body, { childList: true, subtree: true });
+  });
+}());
 </script>
 
 </x-app-layout>
