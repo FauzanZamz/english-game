@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\{Word, WordTheme, Game, Play, PlayEvent, UserLevelUnlock};
-use App\Services\{LexicoService, CrosswordBuilder};
+use App\Services\{LexicoService, CrosswordBuilder, GbaService};
 
 class CrosswordController extends Controller
 {
@@ -37,25 +37,43 @@ class CrosswordController extends Controller
         return response()->json(['ok' => true, 'level' => $req->level]);
     }
 
-    public function generate(Request $req, LexicoService $lex, CrosswordBuilder $builder)
+    /**
+     * Kembalikan LD_target untuk sesi berikutnya (digunakan frontend saat generate).
+     */
+    public function nextLd(Request $req, GbaService $gba)
     {
-        $req->validate(['theme' => 'required', 'level' => 'required|in:beginner,intermediate,expert']);
+        $ldNext = $gba->getNextLD($req->user()->id, 'crossword');
+        return response()->json(['ld_next' => $ldNext]);
+    }
 
-        // Parameter per level
-        [$count, $minLen, $maxLen, $size] = match($req->level) {
-            'beginner'     => [5, 4, 6, 12],
-            'intermediate' => [6, 5, 8, 13],
-            default        => [8, 6, 10, 15],  // expert
-        };
+    public function generate(Request $req, LexicoService $lex, CrosswordBuilder $builder, GbaService $gba)
+    {
+        $req->validate([
+            'theme'     => 'required',
+            'level'     => 'required|in:beginner,intermediate,expert',
+            'ld_target' => 'nullable|numeric|min:0|max:1',
+        ]);
 
-        // Ambil tema
+        $ldTarget = $req->input('ld_target');
+
+        if ($ldTarget !== null) {
+            [$count, $minLen, $maxLen, $size] = $gba->ldToCrosswordParams((float) $ldTarget);
+        } else {
+            [$count, $minLen, $maxLen, $size] = match($req->level) {
+                'beginner'     => [5, 4, 6, 12],
+                'intermediate' => [6, 5, 8, 13],
+                default        => [8, 6, 10, 15],
+            };
+        }
+
+        session(['crossword_ld_target' => $ldTarget, 'crossword_level' => $req->level]);
+
         $theme = WordTheme::where('slug', $req->theme)->firstOrFail();
 
-        // Kandidat kata (dari DB) sesuai panjang
         $candidates = Word::where('theme_id', $theme->id)
             ->whereBetween(DB::raw('LENGTH(text)'), [$minLen, $maxLen])
             ->inRandomOrder()
-            ->limit($count * 50) // banyak supaya chance berhasil tinggi
+            ->limit($count * 50)
             ->pluck('text')
             ->map(fn ($w) => strtolower(trim($w)))
             ->unique()
@@ -65,15 +83,14 @@ class CrosswordController extends Controller
             return response()->json(['error' => 'Tidak ada kata untuk tema/level ini.'], 422);
         }
 
-        // Pilih kata yang punya definisi (seperti get_valid_words di ttsv2)
         $picked = [];
-        $defs   = []; // word => definition (string pendek)
+        $defs   = [];
         foreach ($candidates as $w) {
             if (count($picked) >= $count) break;
             $data = $lex->get($w);
             $def  = $data['defs'][0] ?? null;
             if ($def) {
-                $picked[] = strtoupper($w);
+                $picked[]             = strtoupper($w);
                 $defs[strtoupper($w)] = $def;
             }
         }
@@ -82,17 +99,13 @@ class CrosswordController extends Controller
             return response()->json(['error' => 'Kata valid kurang. Coba ganti tema/level atau tambah data kata.'], 422);
         }
 
-        // Coba bangun grid beberapa kali agar stabil
         $attempts = 10;
         $grid = $positions = null;
         while ($attempts-- > 0) {
-            // acak urutan kata agar penempatan bervariasi
             $words = $picked;
             shuffle($words);
             [$g, $pos] = $builder->build($words, $size);
-            // Kriteria sederhana: minimal 3 kata terpasang di grid
-            $placed = 0;
-            foreach ($pos as $info) { $placed++; }
+            $placed = count($pos);
             if ($placed >= 3) { $grid = $g; $positions = $pos; break; }
         }
 
@@ -100,46 +113,38 @@ class CrosswordController extends Controller
             return response()->json(['error' => 'Gagal membangun puzzle. Coba ulangi atau ganti tema/level.'], 422);
         }
 
-        // Simpan solusi di session untuk pengecekan saat submit
-        session(['crossword_solution' => $grid]);
+        session(['crossword_solution' => $grid, 'crossword_positions' => $positions]);
 
-        // Kirim definisi hanya untuk kata yang benar-benar ada di posisi
         $defsFiltered = [];
         foreach ($positions as $word => $info) {
             if (isset($defs[$word])) $defsFiltered[$word] = $defs[$word];
         }
 
-        // Simpan positions di session untuk per-word scoring saat submit
-        session(['crossword_positions' => $positions]);
-
         return response()->json([
             'size'        => $size,
-            'grid'        => $grid,        // matriks huruf ('' untuk blok)
-            'positions'   => $positions,   // koordinat & arah tiap kata
-            'definitions' => $defsFiltered // clue
+            'grid'        => $grid,
+            'positions'   => $positions,
+            'definitions' => $defsFiltered,
         ]);
     }
 
-    
-    public function submit(Request $req)
+    public function submit(Request $req, GbaService $gba)
     {
-        $req->validate(['grid' => 'required|array', 'duration_sec' => 'nullable|integer']);
+        $req->validate([
+            'grid'            => 'required|array',
+            'duration_sec'    => 'nullable|integer',
+            'hints_used'      => 'nullable|integer',
+            'hints_available' => 'nullable|integer',
+        ]);
+
         $solution  = session('crossword_solution');
         $positions = session('crossword_positions', []);
         abort_if(!$solution, 400, 'Belum generate puzzle');
 
-        // ── Per-word scoring (max 100 poin) ──
-        // Setiap kata dinilai benar/salah secara keseluruhan.
-        // Skor = (kata_benar / total_kata) × 100, dibulatkan ke bawah.
-        // Jika semua kata benar → tepat 100.
-        //
-        // Koordinat setelah array_reverse di CrosswordBuilder:
-        //   ACROSS : row = pos.row,  col = pos.col .. pos.col + length - 1
-        //   DOWN   : huruf pertama di baris pos.row + length - 1 (atas visual),
-        //            turun ke pos.row (bawah visual) → r = pos.row+length-1-i
+        // ── Per-word scoring ──
         $wordsCorrect = 0;
         $totalWords   = count($positions);
-        $wordResults  = [];   // word → bool (untuk PlayEvent)
+        $wordResults  = [];
 
         foreach ($positions as $word => $pos) {
             $allRight = true;
@@ -163,14 +168,46 @@ class CrosswordController extends Controller
             ? ($wordsCorrect === $totalWords ? 100 : (int) floor($wordsCorrect / $totalWords * 100))
             : 0;
 
-        // Simpan play
+        $isExpert    = session('crossword_level') === 'expert';
+        $durationSec = (int) $req->input('duration_sec', 0);
+        $ldTarget    = null;
+        $theta       = null;
+        $ldNext      = null;
+
+        // GBA/DDA hanya aktif untuk difficulty Expert & Beyond
+        if ($isExpert) {
+            $ldTarget   = (float) (session('crossword_ld_target') ?? GbaService::LD_INITIAL);
+            $hintsUsed  = (int) $req->input('hints_used', 0);
+            $hintsAvail = (int) $req->input('hints_available', 3);
+            $success    = $totalWords > 0 && ($wordsCorrect / $totalWords) >= 0.6;
+            $levelNum   = Play::where('user_id', $req->user()->id)
+                ->whereHas('game', fn ($q) => $q->where('slug', 'crossword'))
+                ->count() + 1;
+
+            [$theta, $ldNext] = $gba->calculateTheta(
+                currentLD:      $ldTarget,
+                success:        $success,
+                hintsUsed:      $hintsUsed,
+                hintsAvail:     $hintsAvail,
+                isInitialLevel: $levelNum <= 2
+            );
+
+            $gba->saveLog(
+                $req->user()->id, 'crossword', $levelNum,
+                $theta, $ldTarget, $ldNext, $success, $durationSec
+            );
+        }
+
         $gameId = Game::where('slug', 'crossword')->value('id');
-        $play = Play::create([
+        $play   = Play::create([
             'user_id'      => $req->user()->id,
             'game_id'      => $gameId,
             'score'        => $score,
-            'duration_sec' => (int) $req->input('duration_sec', 0),
+            'duration_sec' => $durationSec,
+            'ld_target'    => $ldTarget,
+            'theta_result' => $theta,
         ]);
+
         PlayEvent::create([
             'play_id' => $play->id,
             'type'    => 'finish',
@@ -178,17 +215,21 @@ class CrosswordController extends Controller
                 'wordsCorrect' => $wordsCorrect,
                 'totalWords'   => $totalWords,
                 'wordResults'  => $wordResults,
-            ])
+            ]),
         ]);
 
-        // hapus kunci supaya satu puzzle satu submit
-        session()->forget(['crossword_solution', 'crossword_positions']);
+        session()->forget(['crossword_solution', 'crossword_positions', 'crossword_ld_target', 'crossword_level']);
 
-        return response()->json([
+        $response = [
             'wordsCorrect' => $wordsCorrect,
             'totalWords'   => $totalWords,
             'score'        => $score,
             'play_id'      => $play->id,
-        ]);
+        ];
+        if ($isExpert && $theta !== null) {
+            $response['theta']   = round($theta, 3);
+            $response['ld_next'] = round($ldNext, 3);
+        }
+        return response()->json($response);
     }
 }

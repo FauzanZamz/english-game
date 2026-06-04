@@ -53,7 +53,7 @@
             </option>
             <option value="expert"
                     :disabled="!spUnlockedLevels.expert"
-                    x-text="spUnlockedLevels.expert ? '🔥 Expert — 20 words' : '🔒 Expert (locked)'">
+                    x-text="spUnlockedLevels.expert ? '🔥 Expert & Beyond — 20 words' : '🔒 Expert & Beyond (locked)'">
             </option>
           </select>
         </div>
@@ -179,32 +179,69 @@
           </div>
         </template>
 
+        {{-- ══ Unified Result Card (Result + GBA + Recommendation) ══ --}}
         <template x-if="sessionDone">
-          <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-5">
-            <p class="font-semibold text-emerald-700">🎉 Session finished!</p>
-            <p class="text-emerald-800/80 text-sm mt-1">
-              Score: <b x-text="score"></b> / <span x-text="targetWords * 10"></span>
-              · Correct <b x-text="correctCount"></b>/<span x-text="targetWords"></span>
-            </p>
-            <a href="{{ route('leaderboard.spelling') }}" class="inline-block mt-3 px-4 py-2 rounded-full bg-emerald-600 text-white text-sm hover:bg-emerald-700">View Leaderboard</a>
-          </div>
-        </template>
+          <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5">
 
-        {{-- RL: Adaptive Difficulty Recommendation --}}
-        <template x-if="spDiffRecommendation">
-          <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-4 flex items-start gap-3">
-            <span class="text-lg mt-0.5">🧠</span>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Adaptive Difficulty AI</p>
-              <span class="inline-block px-2.5 py-0.5 rounded-lg text-xs font-bold border mb-2"
-                    :class="{
-                      'bg-amber-50 text-amber-800 border-amber-200': spDiffRecommendation.type === 'unlock',
-                      'bg-sky-50 text-sky-700 border-sky-200':       spDiffRecommendation.type === 'progress',
-                      'bg-slate-50 text-slate-600 border-slate-200': spDiffRecommendation.type === 'info'
-                    }"
-                    x-text="spDiffRecommendation.label"></span>
-              <p class="text-sm text-slate-600 leading-relaxed" x-text="spDiffRecommendation.message"></p>
+            {{-- Title row --}}
+            <div class="flex items-center gap-3 mb-4">
+              <span class="text-2xl">🎉</span>
+              <div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Hasil Sesi</p>
+                <p class="font-bold text-slate-800">Sesi selesai!</p>
+              </div>
             </div>
+
+            {{-- Stats: Skor · Benar · Waktu --}}
+            <div class="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-xl mb-4">
+              <div class="text-center">
+                <div class="text-xl font-bold text-sky-600" x-text="score"></div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-0.5">Skor</div>
+              </div>
+              <div class="text-center border-x border-slate-200">
+                <div class="text-xl font-bold text-emerald-600" x-text="correctCount + '/' + targetWords"></div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-0.5">Benar</div>
+              </div>
+              <div class="text-center">
+                <div class="text-xl font-bold text-amber-500" x-text="timerDisplay"></div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-0.5">Waktu</div>
+              </div>
+            </div>
+
+            {{-- GBA Assessment (tampil bila data tersedia) --}}
+            <div x-show="showGbaCard" class="border-t pt-3 mb-3">
+              <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2">📊 Game-Based Assessment</p>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="text-center bg-indigo-50 rounded-lg p-2.5">
+                  <div class="text-lg font-bold text-indigo-700" x-text="(gbaTheta * 100).toFixed(1) + '%'"></div>
+                  <div class="text-xs text-indigo-400 mt-0.5">Kemampuan (θ)</div>
+                </div>
+                <div class="text-center bg-purple-50 rounded-lg p-2.5">
+                  <div class="text-lg font-bold text-purple-700" x-text="(gbaLdNext * 100).toFixed(1) + '%'"></div>
+                  <div class="text-xs text-purple-400 mt-0.5">Difficulty Berikutnya</div>
+                </div>
+              </div>
+            </div>
+
+            {{-- Adaptive Recommendation (inline) --}}
+            <div x-show="spDiffRecommendation" class="flex items-start gap-2 bg-slate-50 rounded-lg p-3 mb-4">
+              <span class="text-base mt-0.5">🧠</span>
+              <div class="flex-1 min-w-0">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-bold border mb-1"
+                      :class="{
+                        'bg-amber-50 text-amber-800 border-amber-200': spDiffRecommendation?.type === 'unlock',
+                        'bg-sky-50 text-sky-700 border-sky-200':       spDiffRecommendation?.type === 'progress',
+                        'bg-slate-50 text-slate-600 border-slate-200': spDiffRecommendation?.type === 'info'
+                      }"
+                      x-text="spDiffRecommendation?.label"></span>
+                <p class="text-xs text-slate-600 leading-relaxed" x-text="spDiffRecommendation?.message"></p>
+              </div>
+            </div>
+
+            <a href="{{ route('leaderboard.spelling') }}"
+               class="inline-block px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
+              View Leaderboard
+            </a>
           </div>
         </template>
 
@@ -224,7 +261,7 @@
                 <p class="text-sky-900/80 text-sm"
                    x-text="spNewLevelUnlocked === 'intermediate'
                      ? 'Your Beginner performance is consistent. Intermediate level is now available!'
-                     : 'Great job! You have mastered Intermediate. Expert level is now available!'">
+                     : 'Great job! You have mastered Intermediate. Expert &amp; Beyond level is now available!'">
                 </p>
                 <div class="flex gap-2 mt-3">
                   <button @click="level = spNewLevelUnlocked; spNewLevelUnlocked = null; start();"
@@ -257,6 +294,14 @@ function spellingGame(){
     started: false, roundActive: false, answered: false, sessionDone: false,
     loadingRound: false, busy: false, t0: null,
     timerDisplay: '00:00', timerInterval: null,
+
+    /* GBA/DDA state */
+    gbaTheta:         0,
+    gbaLdNext:        0.30,
+    gbaLdCurrent:     0.30,
+    hintsUsed:        0,
+    hintsAvailable:   3,
+    showGbaCard:      false,
 
     /* ══ RL Adaptive Difficulty (3-level) — formula identik Crossword ══
        perf_score (0–100):
@@ -299,8 +344,8 @@ function spellingGame(){
     },
     stopTimer() { clearInterval(this.timerInterval); },
 
-    /* ── inisialisasi sesi: kunci jumlah kata lalu generate kata pertama ── */
-    start(){
+    /* ── inisialisasi sesi: ambil LD dari DDA lalu generate kata pertama ── */
+    async start(){
       this.targetWords = this.wordsForLevel(this.level);
       this.roundIdx = 0;
       this.score = 0;
@@ -313,6 +358,21 @@ function spellingGame(){
       this.correctCount = 0;
       this.wrongCount = 0;
       this.giveupCount = 0;
+      this.hintsUsed = 0;
+      this.showGbaCard = false;
+
+      // Fetch next-ld dari DDA hanya untuk Expert & Beyond
+      if (this.level === 'expert') {
+        try {
+          const res = await fetch('{{ route("spelling.next-ld") }}');
+          const data = await res.json();
+          this.gbaLdCurrent = data.ld_next ?? 0.30;
+          this.gbaLdNext    = this.gbaLdCurrent;
+        } catch(e) {
+          this.gbaLdCurrent = 0.30;
+        }
+      }
+
       this.startTimer();
       this.loadRound();
     },
@@ -327,7 +387,7 @@ function spellingGame(){
       this.loadingRound = true;
       fetch('{{ route('spelling.new') }}',{method:'POST', headers:{
         'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
-      }, body: JSON.stringify({theme:this.theme, level:this.level})})
+      }, body: JSON.stringify({theme:this.theme, level:this.level, ld_target: this.level === 'expert' ? this.gbaLdCurrent : null})})
       .then(r=>r.json()).then(j=>{
         this.loadingRound = false;
         if(j.error){ this.roundError = j.error; this.roundActive = false; return; }
@@ -448,26 +508,36 @@ function spellingGame(){
           rec = { label:'Focus on Accuracy', message:'Focus on answering words correctly first. Target an average of ≥ 60 to unlock Intermediate.', type:'info' };
       } else if (this.level === 'intermediate') {
         if (justUnlocked === 'expert' || (levelAvg >= 70 && this.spUnlockedLevels.expert))
-          rec = { label:'Advance to Expert!', message:'Great! Your Intermediate average is '+levelAvg+'/100. Expert level is now unlocked!', type:'unlock' };
+          rec = { label:'Advance to Expert & Beyond!', message:'Great! Your Intermediate average is '+levelAvg+'/100. Expert & Beyond is now unlocked!', type:'unlock' };
         else if (levelAvg >= 50)
-          rec = { label:'Good Progress', message:'Keep improving! Reach an average of ≥ 70 to unlock Expert (current: '+levelAvg+'/100).', type:'progress' };
+          rec = { label:'Good Progress', message:'Keep improving! Reach an average of ≥ 70 to unlock Expert & Beyond (current: '+levelAvg+'/100).', type:'progress' };
         else
-          rec = { label:'Maintain Intermediate', message:'Focus on speed and accuracy. Target an average of ≥ 70 to unlock Expert.', type:'progress' };
+          rec = { label:'Maintain Intermediate', message:'Focus on speed and accuracy. Target an average of ≥ 70 to unlock Expert & Beyond.', type:'progress' };
       } else {
         if (levelAvg >= 75)
-          rec = { label:'Expert — Exceptional!', message:'Your Expert performance is outstanding (avg '+levelAvg+'/100). You are a master!', type:'unlock' };
+          rec = { label:'Expert & Beyond — Exceptional!', message:'Outstanding performance (avg '+levelAvg+'/100). GBA is actively tracking your ability!', type:'unlock' };
         else if (levelAvg >= 50)
-          rec = { label:'Stay at Expert', message:'Good Expert progress (avg '+levelAvg+'/100). Keep improving your speed.', type:'progress' };
+          rec = { label:'Keep Going', message:'Good Expert & Beyond progress (avg '+levelAvg+'/100). GBA is adjusting difficulty automatically.', type:'progress' };
         else
-          rec = { label:'Expert — Keep Practicing', message:'Expert level is challenging. Focus on spelling accuracy first.', type:'info' };
+          rec = { label:'Expert & Beyond — Focus', message:'GBA is measuring your ability. Focus on spelling accuracy to improve your score.', type:'info' };
       }
       this.spDiffRecommendation = rec;
 
       fetch('{{ route('spelling.finish') }}', {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ duration_sec: dur })
-      });
+        body: JSON.stringify({
+          duration_sec:    dur,
+          hints_used:      this.hintsUsed,
+          hints_available: this.hintsAvailable,
+        })
+      }).then(r => r.json()).then(j => {
+        if (j.theta !== undefined) {
+          this.gbaTheta    = j.theta;
+          this.gbaLdNext   = j.ld_next;
+          this.showGbaCard = true;
+        }
+      }).catch(() => {});
     }
   }
 }

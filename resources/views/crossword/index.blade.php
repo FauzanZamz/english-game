@@ -187,6 +187,9 @@ option:disabled { color: #94a3b8; }
 /* ── Clue list scroll ── */
 .clue-scroll { max-height: 390px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
 .clue-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
   cursor: pointer;
@@ -196,6 +199,22 @@ option:disabled { color: #94a3b8; }
   transition: background 0.1s;
   border-left: 3px solid transparent;
 }
+.wiki-img-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: center;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  color: #64748b;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.wiki-img-btn:hover { background: #eff6ff; border-color: #6366f1; color: #6366f1; }
 .clue-item:hover { background: #f8fafc; }
 .clue-item.clue-across-active { background: #eff6ff; border-left-color: #3b82f6; color: #1d4ed8; }
 .clue-item.clue-down-active   { background: #f0fdf4; border-left-color: #22c55e; color: #15803d; }
@@ -359,7 +378,7 @@ option:disabled { color: #94a3b8; }
         </div>
       </div>
 
-      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      <div x-show="grid.length" style="margin-left:auto;display:flex;align-items:center;gap:10px">
         {{-- Timer pill --}}
         <div style="display:flex;align-items:center;gap:7px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 14px">
           <svg style="width:15px;height:15px;color:#6366f1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -394,7 +413,7 @@ option:disabled { color: #94a3b8; }
             </option>
             <option value="expert"
                     :disabled="!unlockedLevels.expert"
-                    x-text="unlockedLevels.expert ? '🔥 Expert — 15×15' : '🔒 Expert (terkunci)'">
+                    x-text="unlockedLevels.expert ? '🔥 Expert & Beyond — 15×15' : '🔒 Expert & Beyond (terkunci)'">
             </option>
           </select>
         </div>
@@ -418,8 +437,8 @@ option:disabled { color: #94a3b8; }
                   @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
                   class="btn-primary"
                   :class="newLevelUnlocked === 'expert' ? 'btn-unlock-expert' : 'btn-unlock-inter'"
-                  :title="'AI: kamu siap naik ke ' + (newLevelUnlocked === 'intermediate' ? 'Intermediate' : 'Expert') + '!'">
-            <span x-text="newLevelUnlocked === 'intermediate' ? '🌿 Go Intermediate!' : '🔥 Go Expert!'"></span>
+                  :title="'AI: kamu siap naik ke ' + (newLevelUnlocked === 'intermediate' ? 'Intermediate' : 'Expert & Beyond') + '!'">
+            <span x-text="newLevelUnlocked === 'intermediate' ? '🌿 Go Intermediate!' : '🔥 Go Expert & Beyond!'"></span>
           </button>
         </div>
       </div>
@@ -430,11 +449,62 @@ option:disabled { color: #94a3b8; }
       <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:12px;padding:12px 16px;color:#991b1b;font-size:0.85rem;margin-bottom:16px" class="fade-in" x-text="error"></div>
     </template>
 
-    {{-- Result banner --}}
+    {{-- ══ Unified Result Card (Result + GBA + Recommendation) ══ --}}
     <template x-if="resultMsg">
-      <div class="result-banner mb-3" :class="resultPerfect ? 'success' : 'partial'">
-        <span style="font-size:1.3rem" x-text="resultPerfect ? '🏆' : '📝'"></span>
-        <span x-text="resultMsg"></span>
+      <div class="cw-card fade-in" style="padding:20px;margin-bottom:16px">
+
+        {{-- Title row --}}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="font-size:1.6rem" x-text="resultPerfect ? '🏆' : '📝'"></span>
+          <div>
+            <p style="margin:0;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Hasil Puzzle</p>
+            <p style="margin:0;font-size:0.92rem;font-weight:700;color:#1e293b"
+               x-text="resultPerfect ? 'Sempurna! Semua kata benar.' : 'Puzzle selesai. Lihat rincian di bawah.'"></p>
+          </div>
+        </div>
+
+        {{-- Stats: Skor · Kata Benar · Waktu --}}
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:#f8fafc;border-radius:10px;margin-bottom:14px">
+          <div style="text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:#6366f1" x-text="score"></div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Skor / 100</div>
+          </div>
+          <div style="text-align:center;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
+            <div style="font-size:1.5rem;font-weight:800;color:#22c55e" x-text="resultWordsCorrect + '/' + resultTotalWords"></div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Kata Benar</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:#f59e0b" x-text="timerDisplay"></div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Waktu</div>
+          </div>
+        </div>
+
+        {{-- GBA Assessment (tampil bila data tersedia) --}}
+        <div x-show="showGbaCard" style="border-top:1px solid #e2e8f0;padding-top:12px;margin-bottom:12px">
+          <p style="margin:0 0 8px;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1">📊 Game-Based Assessment</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="text-align:center;background:#eef2ff;border-radius:8px;padding:10px">
+              <div style="font-size:1.25rem;font-weight:800;color:#4f46e5" x-text="(gbaTheta * 100).toFixed(1) + '%'"></div>
+              <div style="font-size:0.65rem;color:#818cf8;margin-top:2px">Kemampuan Anda (θ Awal 0.30)  </div>
+            </div>
+            <div style="text-align:center;background:#f5f3ff;border-radius:8px;padding:10px">
+              <div style="font-size:1.25rem;font-weight:800;color:#7c3aed" x-text="(gbaLdNext * 100).toFixed(1) + '%'"></div>
+              <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">Difficulty Berikutnya Ditingkatkan</div>
+            </div>
+          </div>
+        </div>
+
+        {{-- Adaptive Difficulty Recommendation (inline) --}}
+        <div x-show="diffRecommendation" style="display:flex;align-items:flex-start;gap:8px;background:#f8fafc;border-radius:8px;padding:10px">
+          <span style="font-size:0.9rem;margin-top:1px">🧠</span>
+          <div style="flex:1">
+            <span class="diff-badge" :class="diffRecommendation?.badgeClass"
+                  x-text="diffRecommendation?.label"
+                  style="margin-bottom:5px;display:inline-block"></span>
+            <p style="margin:0;font-size:0.78rem;color:#475569;line-height:1.5" x-text="diffRecommendation?.message"></p>
+          </div>
+        </div>
+
       </div>
     </template>
 
@@ -451,7 +521,7 @@ option:disabled { color: #94a3b8; }
           <p style="margin:0;font-size:0.88rem;font-weight:600;color:#1e293b"
              x-text="newLevelUnlocked === 'intermediate'
                ? 'Selamat! Performa kamu cukup konsisten. Level Intermediate kini tersedia!'
-               : 'Luar biasa! Kamu menguasai Intermediate. Level Expert kini tersedia!'"></p>
+               : 'Luar biasa! Kamu menguasai Intermediate. Level Expert & Beyond kini tersedia!'"></p>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0">
           <button @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
@@ -466,15 +536,10 @@ option:disabled { color: #94a3b8; }
       </div>
     </template>
 
-    {{-- AI Feature 2: Adaptive Difficulty Recommendation --}}
-    <template x-if="diffRecommendation">
-      <div style="margin-bottom:16px;padding:12px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;display:flex;align-items:center;gap:12px;animation:fadeSlideIn 0.4s ease">
-        <span style="font-size:1.1rem">🧠</span>
-        <div style="flex:1">
-          <p style="margin:0 0 3px;font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">Adaptive Difficulty AI</p>
-          <p style="margin:0;font-size:0.84rem;color:#334155" x-text="diffRecommendation.message"></p>
-        </div>
-        <span class="diff-badge" :class="diffRecommendation.badgeClass" x-text="diffRecommendation.label"></span>
+    {{-- AI Feature 2: Adaptive Difficulty Recommendation (sudah digabung ke Result Card) --}}
+    <template x-if="false && diffRecommendation">
+      <div style="display:none">
+        <span x-text="diffRecommendation.label"></span>
       </div>
     </template>
 
@@ -542,13 +607,19 @@ option:disabled { color: #94a3b8; }
           <div class="cw-active-clue-strip" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:18px" x-show="activeClues.across || activeClues.down">
             <template x-if="activeClues.across">
               <div style="flex:1;min-width:180px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:10px 14px">
-                <p style="margin:0 0 3px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3b82f6">➡ Across</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                  <p style="margin:0;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3b82f6">➡ Across</p>
+                  <button @click="fetchWikiImage(activeClues.across, definitions[activeClues.across])" class="wiki-img-btn" title="Lihat gambar Wikipedia" style="border-color:#bfdbfe">🖼 Gambar</button>
+                </div>
                 <p style="margin:0;font-size:0.82rem;color:#1e3a5f;line-height:1.5" x-text="definitions[activeClues.across]"></p>
               </div>
             </template>
             <template x-if="activeClues.down">
               <div style="flex:1;min-width:180px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px 14px">
-                <p style="margin:0 0 3px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#22c55e">⬇ Down</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+                  <p style="margin:0;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#22c55e">⬇ Down</p>
+                  <button @click="fetchWikiImage(activeClues.down, definitions[activeClues.down])" class="wiki-img-btn" title="Lihat gambar Wikipedia" style="border-color:#86efac">🖼 Gambar</button>
+                </div>
                 <p style="margin:0;font-size:0.82rem;color:#14532d;line-height:1.5" x-text="definitions[activeClues.down]"></p>
               </div>
             </template>
@@ -568,7 +639,8 @@ option:disabled { color: #94a3b8; }
                      :class="{ 'clue-across-active': activeClues.across === clue.word }"
                      @click="jumpToWord(clue.word, 'across')">
                   <strong x-text="clue.num + '.'"></strong>
-                  <span x-text="' ' + clue.def"></span>
+                  <span x-text="' ' + clue.def" style="flex:1"></span>
+                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Lihat gambar Wikipedia">🖼</button>
                 </div>
               </template>
             </div>
@@ -583,7 +655,8 @@ option:disabled { color: #94a3b8; }
                      :class="{ 'clue-down-active': activeClues.down === clue.word }"
                      @click="jumpToWord(clue.word, 'down')">
                   <strong x-text="clue.num + '.'"></strong>
-                  <span x-text="' ' + clue.def"></span>
+                  <span x-text="' ' + clue.def" style="flex:1"></span>
+                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Lihat gambar Wikipedia">🖼</button>
                 </div>
               </template>
             </div>
@@ -603,7 +676,8 @@ option:disabled { color: #94a3b8; }
                    :class="{ 'clue-across-active': activeClues.across === clue.word }"
                    @click="jumpToWord(clue.word, 'across')">
                 <strong x-text="clue.num + '.'"></strong>
-                <span x-text="' ' + clue.def"></span>
+                <span x-text="' ' + clue.def" style="flex:1"></span>
+                <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Wikipedia image">🖼</button>
               </div>
             </template>
           </div>
@@ -614,7 +688,8 @@ option:disabled { color: #94a3b8; }
                    :class="{ 'clue-down-active': activeClues.down === clue.word }"
                    @click="jumpToWord(clue.word, 'down')">
                 <strong x-text="clue.num + '.'"></strong>
-                <span x-text="' ' + clue.def"></span>
+                <span x-text="' ' + clue.def" style="flex:1"></span>
+                <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Wikipedia image">🖼</button>
               </div>
             </template>
           </div>
@@ -623,6 +698,53 @@ option:disabled { color: #94a3b8; }
     </template>
 
   </div>{{-- container --}}
+
+  {{-- ── Wikipedia Image Modal ── --}}
+  <div x-show="wikiModal.open"
+       @keydown.escape.window="wikiModal.open=false"
+       style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000">
+    <div @click.self="wikiModal.open=false"
+         style="width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+    <div style="background:#fff;border-radius:20px;padding:24px;max-width:420px;width:100%;box-shadow:0 25px 80px rgba(0,0,0,0.3);position:relative;max-height:88vh;overflow-y:auto">
+
+      {{-- Close button --}}
+      <button @click="wikiModal.open=false"
+              style="position:absolute;top:12px;right:12px;background:#f1f5f9;border:none;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:0.85rem;color:#64748b;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>
+
+      {{-- Header --}}
+      <//p style="margin:0 0 2px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6366f1">📖 Wikipedia Image</p>
+      <//p style="margin:0 0 4px;font-size:1rem;font-weight:800;color:#1e293b;text-transform:capitalize;padding-right:32px" x-text="wikiModal.title"></p>
+      <//p style="margin:0 0 14px;font-size:0.78rem;color:#64748b;line-height:1.5" x-text="wikiModal.def" x-show="wikiModal.def"></p>
+
+      {{-- Loading --}}
+      <div x-show="wikiModal.loading" style="text-align:center;padding:40px 20px">
+        <span class="spin" style="font-size:2.5rem;display:inline-block">⟳</span>
+        <p style="margin:12px 0 0;font-size:0.85rem;color:#64748b">Mencari gambar di Wikipedia…</p>
+      </div>
+
+      {{-- Error --}}
+      <div x-show="!wikiModal.loading && wikiModal.error" style="text-align:center;padding:30px 20px">
+        <div style="font-size:2.5rem;margin-bottom:10px">🔍</div>
+        <p style="font-size:0.85rem;color:#ef4444;margin:0" x-text="wikiModal.error"></p>
+      </div>
+
+      {{-- Image --}}
+      <div x-show="!wikiModal.loading && wikiModal.image">
+        <img :src="wikiModal.image" :alt="wikiModal.title"
+             style="width:100%;border-radius:10px;display:block;margin-bottom:10px;object-fit:cover;max-height:300px"
+             @@error="wikiModal.error='Gagal memuat gambar.';wikiModal.image=null">
+        <p style="margin:0;font-size:0.72rem;color:#94a3b8;text-align:center">
+          Sumber:&nbsp;<//a :href="'https://en.wikipedia.org/wiki/'+encodeURIComponent(wikiModal.title)"
+                          target="_blank" rel="noopener"
+                          style="color:#6366f1;text-decoration:underline"
+                          x-text="wikiModal.title"></a>&nbsp;— Wikipedia
+        </p>
+      </div>
+
+    </div>
+    </div>{{-- /flex centering wrapper --}}
+  </div>{{-- /x-show overlay --}}
+
 </div>{{-- page --}}
 
 {{-- ════════════════════════════════════════
@@ -639,11 +761,21 @@ function crossword() {
     acrossClues: [], downClues: [],
     score: 0, scorePop: false,
     loading: false, error: '', submitted: false,
-    resultMsg: '', resultPerfect: false,
+    resultMsg: '', resultPerfect: false, resultWordsCorrect: 0, resultTotalWords: 0,
     activeClues: {}, currentCell: null, lastDirection: 'across',
     cellResult: {},
     /* timer */
     t0: null, timerInterval: null, timerDisplay: '00:00',
+    /* Wikipedia image modal */
+    wikiModal: { open: false, loading: false, image: null, title: '', def: '', error: '' },
+
+    /* GBA/DDA state */
+    gbaTheta:       0,
+    gbaLdNext:      0.30,
+    gbaLdCurrent:   0.30,
+    hintsUsed:      0,
+    hintsAvailable: 3,
+    showGbaCard:    false,
 
     /* ══ Feature 1: Scattered hint letters ══
        hintCells: { "r,c": true } — cells pre-filled as hints (read-only, violet).
@@ -742,12 +874,25 @@ function crossword() {
       this.score=0; this.timerDisplay='00:00'; this.stopTimer();
       /* reset state */
       this.diffRecommendation=null; this.bayesWarn={};
-      this.hintCells={};
+      this.hintCells={}; this.hintsUsed=0; this.showGbaCard=false;
 
+      // Fetch next-ld dari DDA hanya untuk Expert & Beyond
+      if (this.level === 'expert') {
+        fetch('{{ route("crossword.next-ld") }}')
+          .then(r => r.json())
+          .then(d => { this.gbaLdCurrent = d.ld_next ?? 0.30; })
+          .catch(() => {})
+          .finally(() => { this._doGenerate(); });
+      } else {
+        this._doGenerate();
+      }
+    },
+
+    _doGenerate() {
       fetch('{{ route('crossword.generate') }}', {
         method:'POST',
         headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'},
-        body: JSON.stringify({theme:this.theme, level:this.level})
+        body: JSON.stringify({theme:this.theme, level:this.level, ld_target: this.level === 'expert' ? this.gbaLdCurrent : null})
       })
       .then(r=>r.json())
       .then(j=>{
@@ -771,7 +916,7 @@ function crossword() {
       })
       .catch(()=>{ this.error='Network error — please try again.'; })
       .finally(()=>{ this.loading=false; });
-    },
+    },  // end _doGenerate
 
     /* ══ Feature 1: Build hint cells ══
        Algorithm:
@@ -1140,7 +1285,12 @@ function crossword() {
       fetch('{{ route('crossword.submit') }}',{
         method:'POST',
         headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'},
-        body:JSON.stringify({grid:this.grid, duration_sec:dur})
+        body:JSON.stringify({
+          grid:this.grid,
+          duration_sec:dur,
+          hints_used:this.hintsUsed,
+          hints_available:this.hintsAvailable,
+        })
       })
       .then(r=>r.json())
       .then(j=>{
@@ -1167,6 +1317,8 @@ function crossword() {
           this.$nextTick(()=>{ this.scorePop=true; setTimeout(()=>{ this.scorePop=false; },500); });
         }
         this.resultPerfect = (j.wordsCorrect === j.totalWords);
+        this.resultWordsCorrect = j.wordsCorrect;
+        this.resultTotalWords   = j.totalWords;
         this.resultMsg = `${j.wordsCorrect}/${j.totalWords} kata benar · ${j.score}/100 pts · Waktu: ${this.timerDisplay}`;
 
         /* ══ RL Adaptive Difficulty (3-level) ══
@@ -1225,23 +1377,58 @@ function crossword() {
             rec = { label:'Fokus Akurasi', message:'Fokus isi jawaban yang benar dulu. Target rata-rata ≥ 60 untuk unlock Intermediate.', badgeClass:'diff-easy' };
         } else if (this.level === 'intermediate') {
           if (justUnlocked === 'expert' || (levelAvg >= 70 && this.unlockedLevels.expert))
-            rec = { label:'Naik ke Expert!', message:'Hebat! Rata-rata Intermediate kamu '+levelAvg+'/100. Level Expert sudah terbuka!', badgeClass:'diff-hard' };
+            rec = { label:'Naik ke Expert & Beyond!', message:'Hebat! Rata-rata Intermediate kamu '+levelAvg+'/100. Level Expert & Beyond sudah terbuka!', badgeClass:'diff-hard' };
           else if (levelAvg >= 50)
-            rec = { label:'Progress Bagus', message:'Terus tingkatkan! Raih rata-rata ≥ 70 untuk membuka Expert (sekarang: '+levelAvg+'/100).', badgeClass:'diff-medium' };
+            rec = { label:'Progress Bagus', message:'Terus tingkatkan! Raih rata-rata ≥ 70 untuk membuka Expert & Beyond (sekarang: '+levelAvg+'/100).', badgeClass:'diff-medium' };
           else
-            rec = { label:'Pertahankan Intermediate', message:'Fokus pada kecepatan dan akurasi. Target rata-rata ≥ 70 untuk unlock Expert.', badgeClass:'diff-medium' };
+            rec = { label:'Pertahankan Intermediate', message:'Fokus pada kecepatan dan akurasi. Target rata-rata ≥ 70 untuk unlock Expert & Beyond.', badgeClass:'diff-medium' };
         } else { // expert
           if (levelAvg >= 75)
-            rec = { label:'Expert — Luar Biasa!', message:'Performa Expert kamu sangat tinggi (avg '+levelAvg+'/100). Kamu sudah mahir!', badgeClass:'diff-hard' };
+            rec = { label:'Expert & Beyond — Luar Biasa!', message:'Performa Expert & Beyond kamu sangat tinggi (avg '+levelAvg+'/100). GBA aktif memantau kemampuanmu!', badgeClass:'diff-hard' };
           else if (levelAvg >= 50)
-            rec = { label:'Tetap di Expert', message:'Progres Expert yang bagus (avg '+levelAvg+'/100). Terus tingkatkan kecepatan.', badgeClass:'diff-medium' };
+            rec = { label:'Terus Tingkatkan', message:'Progres Expert & Beyond bagus (avg '+levelAvg+'/100). GBA menyesuaikan puzzle otomatis.', badgeClass:'diff-medium' };
           else
-            rec = { label:'Expert — Terus Berlatih', message:'Expert memang sulit. Fokus akurasi terlebih dahulu.', badgeClass:'diff-easy' };
+            rec = { label:'Expert & Beyond — Fokus Akurasi', message:'Tingkat ini menantang. GBA sedang mengukur kemampuanmu — fokus akurasi dulu.', badgeClass:'diff-easy' };
         }
         this.diffRecommendation = rec;
         this.backspaceCount = 0;
+
+        // GBA: update estimasi kemampuan dari server
+        if (j.theta !== undefined) {
+          this.gbaTheta    = j.theta;
+          this.gbaLdNext   = j.ld_next;
+          this.showGbaCard = true;
+        }
       })
       .catch(()=>{ this.error='Submit failed — please try again.'; });
+    },
+
+    /* ── Wikipedia image lookup ── */
+    async fetchWikiImage(word, def) {
+      this.wikiModal = { open: true, loading: true, image: null, title: word, def: def, error: '' };
+      try {
+        const q = encodeURIComponent(word);
+        const url = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${q}&prop=pageimages&format=json&pithumbsize=500&origin=*&gsrlimit=5`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        const pages = data.query?.pages;
+        if (!pages) {
+          this.wikiModal.error = 'No image found for this word.';
+          this.wikiModal.loading = false;
+          return;
+        }
+        const sorted  = Object.values(pages).sort((a, b) => (a.index || 0) - (b.index || 0));
+        const withImg = sorted.find(p => p.thumbnail?.source);
+        if (withImg) {
+          this.wikiModal.image = withImg.thumbnail.source;
+          this.wikiModal.title = withImg.title;
+        } else {
+          this.wikiModal.error = 'No image found for this word.';
+        }
+      } catch {
+        this.wikiModal.error = 'Failed to load image. Check your connection.';
+      }
+      this.wikiModal.loading = false;
     }
   };
 }
