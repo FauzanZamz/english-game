@@ -2,7 +2,7 @@
 <div x-data="spellingGame()" class="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-pink-50 via-purple-50 to-blue-50">
   <div class="max-w-7xl mx-auto p-6">
 
-    {{-- ── Page title row (mirroring Crossword structure) ── --}}
+    {{-- ── Page title row ── --}}
     <div class="flex flex-wrap items-center gap-3 mb-6 mt-2">
       <div class="flex items-center gap-2.5">
         <div class="w-9 h-9 rounded-xl bg-pink-500 flex items-center justify-center shadow-sm">
@@ -14,8 +14,15 @@
         </div>
       </div>
 
-      {{-- Timer + Score pills — tampil setelah sesi dimulai --}}
-      <div x-show="started" style="margin-left:auto;display:flex;align-items:center;gap:10px">
+      {{-- Timer + Score + FSM badge (visible setelah mulai) --}}
+      <div x-show="started" style="margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+
+        {{-- FSM State badge --}}
+        <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:5px 12px">
+          <span style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8">FSM</span>
+          <span :style="fsmBadgeStyle" x-text="fsmState"></span>
+        </div>
+
         {{-- Timer pill --}}
         <div style="display:flex;align-items:center;gap:7px;background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;padding:6px 14px">
           <svg style="width:15px;height:15px;color:#6366f1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,7 +39,7 @@
       </div>
     </div>
 
-    {{-- ══ Control bar: tema, level, mulai ══ --}}
+    {{-- ══ Control bar ══ --}}
     <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-4 mb-6">
       <div class="flex flex-wrap items-end gap-4">
         <div>
@@ -58,13 +65,13 @@
           </select>
         </div>
 
-        <button @click="start()" :disabled="loadingRound"
+        <button @click="start()" :disabled="inProgress"
                 class="ml-auto rounded-xl px-5 py-2.5 bg-sky-500 text-white font-semibold shadow hover:bg-sky-600 disabled:opacity-60 disabled:cursor-not-allowed"
-                x-text="started ? '🔄 Try Again · ' + targetWords + ' words' : '🎮 Start · ' + wordsForLevel(level) + ' words'">
+                x-text="sessionDone ? '🔄 Try Again · ' + targetWords + ' words' : (started ? '...' : '🎮 Start · ' + wordsForLevel(level) + ' words')">
         </button>
       </div>
 
-      {{-- ══ Progress + skor (tampil setelah mulai) ══ --}}
+      {{-- Progress bar --}}
       <template x-if="started">
         <div class="mt-4 pt-4 border-t flex items-center gap-4 flex-wrap">
           <div class="flex-1 min-w-[200px]">
@@ -86,8 +93,8 @@
       <div class="lg:col-span-2 space-y-4">
         <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5 min-h-[280px]">
 
-          {{-- State: belum mulai --}}
-          <template x-if="!started">
+          {{-- IDLE --}}
+          <template x-if="fsmState === 'IDLE'">
             <div class="text-center py-10">
               <div class="text-5xl mb-3">🐝</div>
               <h3 class="font-bold text-sky-900 text-lg mb-1">Spelling Bee</h3>
@@ -98,19 +105,18 @@
             </div>
           </template>
 
-          {{-- State: sedang memuat kata --}}
-          <template x-if="loadingRound">
+          {{-- LOADING --}}
+          <template x-if="fsmState === 'LOADING'">
             <div class="text-center py-12">
               <div class="text-4xl mb-3 animate-pulse">🔄</div>
               <p class="text-sky-900/70 font-medium">Preparing word…</p>
             </div>
           </template>
 
-          {{-- State: ronde aktif --}}
-          <template x-if="roundActive && !loadingRound">
+          {{-- LISTENING --}}
+          <template x-if="fsmState === 'LISTENING'">
             <div>
-              {{-- Audio controls --}}
-              <div class="flex flex-wrap gap-2 mb-4">
+              <div class="flex flex-wrap gap-2 mb-4 items-center">
                 <button @click="speakWord()"
                         class="rounded-xl px-3 py-2 border bg-yellow-50 text-amber-700 hover:bg-yellow-100">
                   🔊 Listen
@@ -119,6 +125,16 @@
                         class="rounded-xl px-4 py-2.5 border border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700 hover:bg-fuchsia-100 flex items-center gap-2">
                   🎤 Voice
                 </button>
+                {{-- Countdown pill --}}
+                <div class="ml-auto flex items-center gap-2 rounded-xl px-3 py-1.5 border"
+                     :class="wordTimeLeft <= 10 ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'">
+                  <svg style="width:13px;height:13px" :style="wordTimeLeft<=10?'color:#e11d48':'color:#64748b'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="font-mono text-sm font-bold"
+                        :class="wordTimeLeft<=10?'text-rose-600':'text-slate-600'"
+                        x-text="wordTimeLeft + 's'"></span>
+                </div>
               </div>
 
               <h3 class="font-bold text-sky-900 mb-2 flex items-center gap-2">💡 Clues</h3>
@@ -127,28 +143,41 @@
               </ul>
 
               <div class="mt-4 flex flex-col sm:flex-row gap-2">
-                <input x-model="answer" placeholder="Ketik ejaan kata…" :disabled="busy"
-              class="w-full sm:flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90 disabled:opacity-60"
-              @keyup.enter="submit()" x-ref="answerInput">
-
-    <div class="flex gap-2">
-        <button @click="submit()" :disabled="busy || !answer.trim()"
-                class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
-            ✅ Answer
-        </button>
-        <button @click="giveup()" :disabled="busy"
-                class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-50">
-            🏳️ Surrender
-                </button>
+                <input x-model="answer" placeholder="Ketik ejaan kata…"
+                       class="w-full sm:flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90"
+                       @keyup.enter="submit()" x-ref="answerInput">
+                <div class="flex gap-2">
+                  <button @click="submit()" :disabled="!answer.trim()"
+                          class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    ✅ Answer
+                  </button>
+                  <button @click="giveup()"
+                          class="flex-1 sm:flex-none justify-center items-center flex rounded-xl px-4 py-2 bg-rose-500 text-white hover:bg-rose-600">
+                    🏳️ Surrender
+                  </button>
+                </div>
               </div>
             </div>
           </template>
 
-          {{-- State: ronde terjawab (belum sesi selesai) --}}
-          <template x-if="answered && !sessionDone">
+          {{-- EVALUATING --}}
+          <template x-if="fsmState === 'EVALUATING'">
+            <div class="text-center py-12">
+              <div class="text-4xl mb-3 animate-pulse">⏳</div>
+              <p class="text-sky-900/70 font-medium">Checking answer…</p>
+            </div>
+          </template>
+
+          {{-- FEEDBACK --}}
+          <template x-if="fsmState === 'FEEDBACK'">
             <div class="text-center py-6">
               <div class="mb-5 text-lg font-semibold"
-                   :class="{'text-emerald-700': feedback.startsWith('✅'), 'text-rose-700': feedback.startsWith('❌'), 'text-amber-700': feedback.startsWith('🏳️')}"
+                   :class="{
+                     'text-emerald-700': feedback.startsWith('✅'),
+                     'text-rose-700':    feedback.startsWith('❌'),
+                     'text-amber-700':   feedback.startsWith('🏳️'),
+                     'text-orange-600':  feedback.startsWith('⏱️')
+                   }"
                    x-text="feedback"></div>
               <button @click="nextRound()"
                       class="rounded-xl px-6 py-3 bg-sky-500 text-white font-semibold hover:bg-sky-600 shadow-lg"
@@ -157,19 +186,50 @@
             </div>
           </template>
 
-          {{-- State: error saat memuat --}}
-          <template x-if="roundError">
+          {{-- ERROR --}}
+          <template x-if="fsmState === 'ERROR'">
             <div class="text-center py-8">
               <p class="text-rose-600 font-medium mb-3" x-text="roundError"></p>
-              <button @click="loadRound()" class="rounded-xl px-5 py-2 bg-sky-500 text-white hover:bg-sky-600">
-                🔄 Try Again
-              </button>
+              <div class="flex justify-center gap-2">
+                <button @click="retryLoad()"
+                        class="rounded-xl px-5 py-2 bg-sky-500 text-white hover:bg-sky-600">
+                  🔄 Retry
+                </button>
+                <button @click="fsm('RESET')"
+                        class="rounded-xl px-5 py-2 bg-slate-200 text-slate-700 hover:bg-slate-300">
+                  ↩ Back
+                </button>
+              </div>
             </div>
           </template>
         </div>
+
+        {{-- ── FSM Transition Log ── --}}
+        <div x-show="fsmHistory.length > 0" class="rounded-2xl bg-white/90 backdrop-blur border shadow overflow-hidden">
+          <details>
+            <summary class="px-5 py-3 cursor-pointer select-none flex items-center gap-2 hover:bg-slate-50">
+              <span style="font-size:0.8rem">⚙️</span>
+              <span style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#64748b">FSM Transition Log</span>
+              <span style="margin-left:auto;font-size:0.68rem;color:#94a3b8" x-text="'(' + fsmHistory.length + ' transitions)'"></span>
+            </summary>
+            <div class="px-5 pb-4">
+              <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:8px">Newest first</div>
+              <template x-for="(e, i) in fsmHistory" :key="i">
+                <div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap">
+                  <span style="font-family:monospace;font-size:0.65rem;color:#94a3b8;min-width:56px" x-text="e.time"></span>
+                  <span style="background:#f1f5f9;color:#475569;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:5px" x-text="e.from"></span>
+                  <svg style="width:11px;height:11px;color:#94a3b8;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                  <span style="background:#ede9fe;color:#5b21b6;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:5px;font-style:italic" x-text="e.event"></span>
+                  <svg style="width:11px;height:11px;color:#94a3b8;flex-shrink:0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                  <span style="background:#dbeafe;color:#1e40af;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:5px" x-text="e.to"></span>
+                </div>
+              </template>
+            </div>
+          </details>
+        </div>
       </div>
 
-      {{-- ══ Right: penjelasan & hasil ══ --}}
+      {{-- ══ Right: explanation + results ══ --}}
       <div class="space-y-4">
         <template x-if="answered && wiki.extract">
           <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5">
@@ -179,11 +239,10 @@
           </div>
         </template>
 
-        {{-- ══ Unified Result Card (Result + GBA + Recommendation) ══ --}}
+        {{-- ══ Unified Result Card ══ --}}
         <template x-if="sessionDone">
           <div class="rounded-2xl bg-white/90 backdrop-blur border shadow p-5">
 
-            {{-- Title row --}}
             <div class="flex items-center gap-3 mb-4">
               <span class="text-2xl">🎉</span>
               <div>
@@ -192,7 +251,6 @@
               </div>
             </div>
 
-            {{-- Stats: Skor · Benar · Waktu --}}
             <div class="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-xl mb-4">
               <div class="text-center">
                 <div class="text-xl font-bold text-sky-600" x-text="score"></div>
@@ -208,7 +266,6 @@
               </div>
             </div>
 
-            {{-- GBA Assessment (tampil bila data tersedia) --}}
             <div x-show="showGbaCard" class="border-t pt-3 mb-3">
               <p class="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2">📊 Game-Based Assessment</p>
               <div class="grid grid-cols-2 gap-2">
@@ -223,7 +280,6 @@
               </div>
             </div>
 
-            {{-- Adaptive Recommendation (inline) --}}
             <div x-show="spDiffRecommendation" class="flex items-start gap-2 bg-slate-50 rounded-lg p-3 mb-4">
               <span class="text-base mt-0.5">🧠</span>
               <div class="flex-1 min-w-0">
@@ -288,256 +344,368 @@ function spellingGame(){
   return {
     theme: '{{ $themes[0]->slug ?? "animals" }}',
     level: 'beginner',
-    targetWords: 5,           /* jumlah kata sesi berjalan (dikunci saat start) */
+    targetWords: 5,
     roundIdx: 0, score: 0, clues: [], wiki: {}, wordAudio: '',
-    answer: '', feedback: '', roundError: '',
-    started: false, roundActive: false, answered: false, sessionDone: false,
-    loadingRound: false, busy: false, t0: null,
-    timerDisplay: '00:00', timerInterval: null,
+    answer: '', feedback: '', _roundError: '',
+    t0: null, timerDisplay: '00:00', timerInterval: null,
+    wordTimerId: null, wordTimeLeft: 0, wordTimeoutSec: 60,
 
-    /* GBA/DDA state */
-    gbaTheta:         0,
-    gbaLdNext:        0.30,
-    gbaLdCurrent:     0.30,
-    hintsUsed:        0,
-    hintsAvailable:   3,
-    showGbaCard:      false,
+    /* ══════════════════════════════════════════════════════════════
+       FSM — Finite State Machine
+       ┌─────────────┬──────────────┬────────────────────────────────┐
+       │ FROM State  │ Event        │ TO State                       │
+       ├─────────────┼──────────────┼────────────────────────────────┤
+       │ IDLE        │ START        │ LOADING                        │
+       │ LOADING     │ WORD_READY   │ LISTENING                      │
+       │ LOADING     │ LOAD_FAIL    │ ERROR                          │
+       │ LOADING     │ ALL_DONE     │ FINISHED                       │
+       │ ERROR       │ RETRY        │ LOADING                        │
+       │ ERROR       │ RESET        │ IDLE                           │
+       │ LISTENING   │ SUBMIT       │ EVALUATING                     │
+       │ LISTENING   │ GIVEUP       │ EVALUATING                     │
+       │ LISTENING   │ TIMEOUT      │ FEEDBACK                       │
+       │ EVALUATING  │ RESULT       │ FEEDBACK                       │
+       │ EVALUATING  │ EVAL_FAIL    │ LISTENING                      │
+       │ FEEDBACK    │ NEXT         │ LOADING                        │
+       │ FEEDBACK    │ FINISH       │ FINISHED                       │
+       │ FINISHED    │ RESTART      │ IDLE                           │
+       └─────────────┴──────────────┴────────────────────────────────┘
+    ══════════════════════════════════════════════════════════════ */
+    fsmState: 'IDLE',
+    fsmHistory: [],
 
-    /* ══ RL Adaptive Difficulty (3-level) — formula identik Crossword ══
-       perf_score (0–100):
-         accuracy*60  — kata benar / total ronde
-         speed*25     — waktu vs baseline (targetWords × 26 dtk), dibobot accuracy
-         wrong*15     — penalti salah+menyerah, dibobot accuracy
-       Gate: accuracy < 30% → cap at 20
-       Unlock: avg 3 sesi terakhir level ini ≥ 60 (inter) / ≥ 70 (expert) */
-    spPerfHistory:        JSON.parse(localStorage.getItem('sp_perf') || '[]'),
-    spUnlockedLevels:     @json($unlockedLevels),   /* server-side, per-akun */
-    spNewLevelUnlocked:   null,   /* 'intermediate' | 'expert' | null */
-    spDiffRecommendation: null,   /* { label, message, type } */
-    correctCount: 0, wrongCount: 0, giveupCount: 0,
-
-    /* jumlah kata per level kesulitan */
-    wordsForLevel(lvl){
-      return lvl === 'beginner' ? 5 : (lvl === 'intermediate' ? 10 : 20);
+    FSM_TRANSITIONS: {
+      IDLE:       { START:      'LOADING'                             },
+      LOADING:    { WORD_READY: 'LISTENING', LOAD_FAIL: 'ERROR', ALL_DONE: 'FINISHED' },
+      ERROR:      { RETRY:      'LOADING',   RESET:     'IDLE'        },
+      LISTENING:  { SUBMIT:     'EVALUATING', GIVEUP:   'EVALUATING', TIMEOUT: 'FEEDBACK' },
+      EVALUATING: { RESULT:     'FEEDBACK',  EVAL_FAIL: 'LISTENING'   },
+      FEEDBACK:   { NEXT:       'LOADING',   FINISH:    'FINISHED'    },
+      FINISHED:   { RESTART:    'IDLE'                                },
     },
 
-    /* sesi sedang berjalan (mulai s/d sebelum selesai) */
-    get inProgress(){ return this.started && !this.sessionDone; },
+    /* Send an event to the FSM — returns true if transition was valid */
+    fsm(event) {
+      const trans = this.FSM_TRANSITIONS[this.fsmState];
+      if (!trans || !trans[event]) {
+        console.warn(`[FSM] Blocked: "${this.fsmState}" + "${event}" → no target`);
+        return false;
+      }
+      const prev = this.fsmState;
+      this.fsmState = trans[event];
+      this.fsmHistory = [
+        { from: prev, event, to: this.fsmState, time: new Date().toLocaleTimeString() },
+        ...this.fsmHistory,
+      ].slice(0, 10);
+      console.log(`%c[FSM] ${prev} ──[${event}]──▶ ${this.fsmState}`, 'color:#6366f1;font-weight:bold');
+      return true;
+    },
 
+    /* ── Computed state flags — all driven by fsmState ── */
+    get started()     { return this.fsmState !== 'IDLE'; },
+    get loadingRound(){ return this.fsmState === 'LOADING'; },
+    get roundActive() { return this.fsmState === 'LISTENING'; },
+    get busy()        { return this.fsmState === 'EVALUATING'; },
+    get answered()    { return this.fsmState === 'FEEDBACK'; },
+    get sessionDone() { return this.fsmState === 'FINISHED'; },
+    get roundError()  { return this.fsmState === 'ERROR' ? this._roundError : ''; },
+    get inProgress()  { return !['IDLE', 'FINISHED'].includes(this.fsmState); },
+
+    /* Visual badge style per state */
+    get fsmBadgeStyle() {
+      const map = {
+        IDLE:       'background:#e2e8f0;color:#475569',
+        LOADING:    'background:#dbeafe;color:#1e40af',
+        LISTENING:  'background:#fef3c7;color:#78350f',
+        EVALUATING: 'background:#ede9fe;color:#4c1d95',
+        FEEDBACK:   'background:#d1fae5;color:#065f46',
+        FINISHED:   'background:#dcfce7;color:#14532d',
+        ERROR:      'background:#fee2e2;color:#991b1b',
+      };
+      const base = map[this.fsmState] || map.IDLE;
+      return base + ';font-size:0.7rem;font-weight:700;padding:2px 10px;border-radius:6px;letter-spacing:.04em';
+    },
+
+    /* GBA/DDA */
+    gbaTheta: 0, gbaLdNext: 0.30, gbaLdCurrent: 0.30,
+    hintsUsed: 0, hintsAvailable: 3, showGbaCard: false,
+
+    /* RL Adaptive Difficulty */
+    spPerfHistory:        JSON.parse(localStorage.getItem('sp_perf') || '[]'),
+    spUnlockedLevels:     @json($unlockedLevels),
+    spNewLevelUnlocked:   null,
+    spDiffRecommendation: null,
+    correctCount: 0, wrongCount: 0, giveupCount: 0,
+
+    wordsForLevel(lvl){ return lvl === 'beginner' ? 5 : (lvl === 'intermediate' ? 10 : 20); },
     answeredCount(){ return this.correctCount + this.wrongCount + this.giveupCount; },
 
-    /* guard: cegah memilih level terkunci */
-    onLevelChange() {
+    onLevelChange(){
       if (this.level === 'intermediate' && !this.spUnlockedLevels.intermediate) this.level = 'beginner';
       if (this.level === 'expert'       && !this.spUnlockedLevels.expert)       this.level = 'beginner';
     },
 
-    /* ── timer (identik Crossword) ── */
-    startTimer() {
-      this.t0 = Date.now();
-      this.timerDisplay = '00:00';
+    startTimer(){
+      this.t0 = Date.now(); this.timerDisplay = '00:00';
       clearInterval(this.timerInterval);
       this.timerInterval = setInterval(() => {
         const s = Math.floor((Date.now() - this.t0) / 1000);
         this.timerDisplay = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
       }, 1000);
     },
-    stopTimer() { clearInterval(this.timerInterval); },
+    stopTimer(){ clearInterval(this.timerInterval); },
 
-    /* ── inisialisasi sesi: ambil LD dari DDA lalu generate kata pertama ── */
+    /* ── retryLoad: encapsulates RETRY transition + reload ── */
+    retryLoad(){
+      if (!this.fsm('RETRY')) return;  /* ERROR → LOADING */
+      this.loadRound();
+    },
+
+    /* ── Word-level countdown timer (per round) ── */
+    startWordTimer(){
+      /* Timeout per level: Beginner 60s, Intermediate 45s, Expert 30s */
+      this.wordTimeoutSec = this.level === 'beginner' ? 60 : (this.level === 'intermediate' ? 45 : 30);
+      this.wordTimeLeft   = this.wordTimeoutSec;
+      clearInterval(this.wordTimerId);
+      this.wordTimerId = setInterval(() => {
+        this.wordTimeLeft--;
+        if (this.wordTimeLeft <= 0) {
+          clearInterval(this.wordTimerId);
+          this.handleTimeout();
+        }
+      }, 1000);
+    },
+
+    clearWordTimer(){
+      clearInterval(this.wordTimerId);
+      this.wordTimeLeft = 0;
+    },
+
+    /* ── TIMEOUT handler: auto-giveup when countdown expires ── */
+    handleTimeout(){
+      if (!this.fsm('TIMEOUT')) return;  /* LISTENING → FEEDBACK */
+      this.clearWordTimer();
+      this.giveupCount++;
+      this.feedback = '⏱️ Time\'s up!';
+      /* Fire-and-forget: update feedback with expected word from server */
+      fetch('{{ route('spelling.answer') }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: '', giveup: true })
+      })
+      .then(r => r.json())
+      .then(j => { this.feedback = '⏱️ Time\'s up! Word: ' + j.expected; })
+      .catch(() => {});
+    },
+
+    /* ── Start / Restart session ── */
     async start(){
-      this.targetWords = this.wordsForLevel(this.level);
-      this.roundIdx = 0;
-      this.score = 0;
-      this.started = true;
-      this.sessionDone = false;
-      this.answered = false;
-      this.roundError = '';
-      this.spNewLevelUnlocked = null;
-      this.spDiffRecommendation = null;
-      this.correctCount = 0;
-      this.wrongCount = 0;
-      this.giveupCount = 0;
-      this.hintsUsed = 0;
-      this.showGbaCard = false;
+      /* Support restart: if already FINISHED, log RESTART transition */
+      if (this.fsmState === 'FINISHED') {
+        this.fsm('RESTART');   /* FINISHED → IDLE */
+      } else if (this.fsmState !== 'IDLE') {
+        console.warn('[FSM] start() hanya bisa dipanggil dari IDLE atau FINISHED');
+    return;
+      }
+      if (!this.fsm('START')) return;  /* IDLE → LOADING */
 
-      // Fetch next-ld dari DDA hanya untuk Expert & Beyond
+      this.targetWords = this.wordsForLevel(this.level);
+      this.roundIdx = 0; this.score = 0;
+      this.answer = ''; this.feedback = ''; this._roundError = '';
+      this.spNewLevelUnlocked = null; this.spDiffRecommendation = null;
+      this.correctCount = 0; this.wrongCount = 0; this.giveupCount = 0;
+      this.hintsUsed = 0; this.showGbaCard = false; this.wiki = {};
+      this.clearWordTimer();
+
       if (this.level === 'expert') {
         try {
-          const res = await fetch('{{ route("spelling.next-ld") }}');
-          const data = await res.json();
-          this.gbaLdCurrent = data.ld_next ?? 0.30;
+          const r = await fetch('{{ route("spelling.next-ld") }}');
+          const d = await r.json();
+          this.gbaLdCurrent = d.ld_next ?? 0.30;
           this.gbaLdNext    = this.gbaLdCurrent;
-        } catch(e) {
-          this.gbaLdCurrent = 0.30;
-        }
+        } catch { this.gbaLdCurrent = 0.30; }
       }
 
       this.startTimer();
       this.loadRound();
     },
 
+    /* ── Load next word from server ── */
     loadRound(){
-      if (this.roundIdx >= this.targetWords){ this.finishSession(); return; }
-      this.answer = '';
-      this.feedback = '';
-      this.roundError = '';
-      this.answered = false;
-      this.roundActive = true;
-      this.loadingRound = true;
-      fetch('{{ route('spelling.new') }}',{method:'POST', headers:{
-        'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
-      }, body: JSON.stringify({theme:this.theme, level:this.level, ld_target: this.level === 'expert' ? this.gbaLdCurrent : null})})
-      .then(r=>r.json()).then(j=>{
-        this.loadingRound = false;
-        if(j.error){ this.roundError = j.error; this.roundActive = false; return; }
+      if (this.roundIdx >= this.targetWords){
+        this.fsm('ALL_DONE');  /* LOADING → FINISHED */
+        this.finishSession();
+        return;
+      }
+      this.answer = ''; this.feedback = ''; this._roundError = '';
+      /* fsmState is LOADING here — no extra transition needed */
+
+      fetch('{{ route('spelling.new') }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: this.theme, level: this.level, ld_target: this.level === 'expert' ? this.gbaLdCurrent : null })
+      })
+      .then(r => r.json())
+      .then(j => {
+        if (j.error) {
+          this._roundError = j.error;
+          this.fsm('LOAD_FAIL');  /* LOADING → ERROR */
+          return;
+        }
         this.clues = j.clues; this.wiki = j.wiki; this.wordAudio = j.wordAudio;
+        this.fsm('WORD_READY');   /* LOADING → LISTENING */
+        this.startWordTimer();    /* start per-word countdown */
         this.speakWord();
         this.$nextTick(() => { this.$refs.answerInput?.focus(); });
       })
-      .catch(()=>{ this.loadingRound = false; this.roundActive = false; this.roundError = 'Gagal memuat kata. Coba lagi.'; });
+      .catch(() => {
+        this._roundError = 'Gagal memuat kata. Coba lagi.';
+        this.fsm('LOAD_FAIL');    /* LOADING → ERROR */
+      });
     },
 
+    /* ── Submit answer ── */
     submit(){
-      if (this.busy || !this.answer.trim()) return;
-      this.busy = true;
-      fetch('{{ route('spelling.answer') }}',{method:'POST', headers:{
-        'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
-      }, body: JSON.stringify({answer:this.answer})})
-      .then(r=>r.json()).then(j=>{
-        this.score += j.scoreDelta;
-        if(j.correct) this.correctCount++; else this.wrongCount++;
-        this.feedback = j.correct ? '✅ Correct!' : '❌ Incorrect. Answer: ' + j.expected;
-        this.roundActive = false;
-        this.answered = true;
+      if (!this.answer.trim()) return;
+      this.clearWordTimer();
+      if (!this.fsm('SUBMIT')) return;    /* LISTENING → EVALUATING */
+
+      fetch('{{ route('spelling.answer') }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: this.answer })
       })
-      .finally(()=>{ this.busy = false; });
+      .then(r => r.json())
+      .then(j => {
+        this.score += j.scoreDelta;
+        if (j.correct) this.correctCount++; else this.wrongCount++;
+        this.feedback = j.correct ? '✅ Correct!' : '❌ Incorrect. Answer: ' + j.expected;
+        this.fsm('RESULT');               /* EVALUATING → FEEDBACK */
+      })
+      .catch(() => { this.fsm('EVAL_FAIL'); });  /* EVALUATING → LISTENING */
     },
 
+    /* ── Give up ── */
     giveup(){
-      if (this.busy) return;
-      this.busy = true;
-      fetch('{{ route('spelling.answer') }}',{method:'POST', headers:{
-        'X-CSRF-TOKEN':'{{ csrf_token() }}','Content-Type':'application/json'
-      }, body: JSON.stringify({answer:'', giveup:true})})
-      .then(r=>r.json()).then(j=>{
+      this.clearWordTimer();
+      if (!this.fsm('GIVEUP')) return;    /* LISTENING → EVALUATING */
+
+      fetch('{{ route('spelling.answer') }}', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: '', giveup: true })
+      })
+      .then(r => r.json())
+      .then(j => {
         this.giveupCount++;
         this.feedback = '🏳️ Surrender. Word: ' + j.expected;
-        this.roundActive = false;
-        this.answered = true;
+        this.fsm('RESULT');               /* EVALUATING → FEEDBACK */
       })
-      .finally(()=>{ this.busy = false; });
+      .catch(() => { this.fsm('EVAL_FAIL'); });  /* EVALUATING → LISTENING */
     },
 
-    /* ── transisi ke kata berikutnya (atau selesai bila kata terakhir) ── */
+    /* ── Advance to next word ── */
     nextRound(){
       this.roundIdx++;
-      this.loadRound();   /* loadRound otomatis memanggil finishSession bila kata habis */
+      if (this.roundIdx >= this.targetWords) {
+        this.fsm('FINISH');  /* FEEDBACK → FINISHED */
+        this.finishSession();
+      } else {
+        this.fsm('NEXT');    /* FEEDBACK → LOADING */
+        this.loadRound();
+      }
     },
 
     speakWord(){
-      if(!this.wordAudio) return;
+      if (!this.wordAudio) return;
       const u = new SpeechSynthesisUtterance(this.wordAudio);
-      u.lang='en-US'; speechSynthesis.speak(u);
+      u.lang = 'en-GB'; speechSynthesis.speak(u);
     },
 
     rec(){
-      try{
+      try {
         const R = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if(!R){ alert('Browser tidak mendukung voice recognition'); return; }
-        const rec = new R(); rec.lang='en-US'; rec.onresult=(e)=>{ this.answer = e.results[0][0].transcript.replace(/\s+/g,'').toLowerCase(); };
-        rec.start();
-      }catch(e){ console.log(e); }
+        if (!R) { alert('Browser tidak mendukung voice recognition'); return; }
+        const r = new R(); r.lang = 'en-GB';
+        r.onresult = (e) => { this.answer = e.results[0][0].transcript.replace(/\s+/g, '').toLowerCase(); };
+        r.start();
+      } catch(e) { console.log(e); }
     },
 
+    /* ── Finish session — fsmState is already FINISHED ── */
     finishSession(){
-      this.roundActive = false;
-      this.answered = false;
-      this.sessionDone = true;
       const dur = Math.round((Date.now() - this.t0) / 1000);
       this.stopTimer();
 
-      /* ══ RL perf_score (0–100) — accuracy + speed + wrong penalty ══ */
-      const totalRounds  = this.answeredCount();
-      const accuracy     = totalRounds > 0 ? (this.correctCount / totalRounds) : 0;
-      const baseTime     = this.targetWords * 26;   /* baseline ~26 dtk/kata, skala ke jumlah kata */
-      const rawSpeed     = Math.max(0, Math.min(25, 25 - ((dur - baseTime) / (baseTime * 2)) * 25));
-      const speedScore   = rawSpeed * accuracy;
-      const wrongPenalty = this.wrongCount + this.giveupCount * 2;
-      const rawWrong     = Math.max(0, 15 - Math.min(15, wrongPenalty * 1.5));
-      const wrongScore   = rawWrong * accuracy;
-      let perfScore      = Math.round(accuracy * 60 + speedScore + wrongScore);
-      if (accuracy < 0.30) perfScore = Math.min(perfScore, 20);
+      /* RL perf_score */
+      const total = this.answeredCount();
+      const acc   = total > 0 ? this.correctCount / total : 0;
+      const base  = this.targetWords * 26;
+      const spd   = Math.max(0, Math.min(25, 25 - ((dur - base) / (base * 2)) * 25)) * acc;
+      const pen   = Math.max(0, 15 - Math.min(15, (this.wrongCount + this.giveupCount * 2) * 1.5)) * acc;
+      let perf    = Math.round(acc * 60 + spd + pen);
+      if (acc < 0.30) perf = Math.min(perf, 20);
 
-      /* Simpan ke history (max 20 entri) */
-      this.spPerfHistory.push({ score: perfScore, level: this.level, ts: Date.now() });
+      this.spPerfHistory.push({ score: perf, level: this.level, ts: Date.now() });
       if (this.spPerfHistory.length > 20) this.spPerfHistory.shift();
-      try { localStorage.setItem('sp_perf', JSON.stringify(this.spPerfHistory)); } catch(e) {}
+      try { localStorage.setItem('sp_perf', JSON.stringify(this.spPerfHistory)); } catch {}
 
-      /* Unlock: rata-rata 3 sesi terakhir DI LEVEL INI */
-      const sameLvl  = this.spPerfHistory.filter(h => h.level === this.level).slice(-3);
-      const levelAvg = sameLvl.length > 0
-        ? Math.round(sameLvl.reduce((s, x) => s + x.score, 0) / sameLvl.length)
-        : 0;
+      const same = this.spPerfHistory.filter(h => h.level === this.level).slice(-3);
+      const avg  = same.length ? Math.round(same.reduce((s, x) => s + x.score, 0) / same.length) : 0;
 
-      let justUnlocked = null;
-      if (this.level === 'beginner' && levelAvg >= 60 && !this.spUnlockedLevels.intermediate) {
+      let unlocked = null;
+      if (this.level === 'beginner' && avg >= 60 && !this.spUnlockedLevels.intermediate) {
         this.spUnlockedLevels = { ...this.spUnlockedLevels, intermediate: true };
-        justUnlocked = 'intermediate';
-      } else if (this.level === 'intermediate' && levelAvg >= 70 && !this.spUnlockedLevels.expert) {
+        unlocked = 'intermediate';
+      } else if (this.level === 'intermediate' && avg >= 70 && !this.spUnlockedLevels.expert) {
         this.spUnlockedLevels = { ...this.spUnlockedLevels, expert: true };
-        justUnlocked = 'expert';
+        unlocked = 'expert';
       }
-      if (justUnlocked) {
-        this.spNewLevelUnlocked = justUnlocked;
+      if (unlocked) {
+        this.spNewLevelUnlocked = unlocked;
         fetch('{{ route('spelling.unlock') }}', {
           method: 'POST',
           headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ level: justUnlocked })
+          body: JSON.stringify({ level: unlocked })
         });
       }
 
-      /* Recommendation message (3-level aware) */
+      const L = this.level, U = this.spUnlockedLevels;
       let rec;
-      if (this.level === 'beginner') {
-        if (justUnlocked === 'intermediate' || (levelAvg >= 60 && this.spUnlockedLevels.intermediate))
-          rec = { label:'Advance to Intermediate!', message:'Great! Your Beginner average is '+levelAvg+'/100. Intermediate level is now unlocked!', type:'unlock' };
-        else if (levelAvg >= 40)
-          rec = { label:'Keep Practicing', message:'Good consistency. Reach an average of ≥ 60 to unlock Intermediate (current: '+levelAvg+'/100).', type:'progress' };
+      if (L === 'beginner') {
+        if (unlocked === 'intermediate' || (avg >= 60 && U.intermediate))
+          rec = { label:'Advance to Intermediate!', message:'Great! Beginner avg '+avg+'/100. Intermediate level is now unlocked!', type:'unlock' };
+        else if (avg >= 40)
+          rec = { label:'Keep Practicing', message:'Good consistency. Reach avg ≥ 60 to unlock Intermediate (current: '+avg+'/100).', type:'progress' };
         else
-          rec = { label:'Focus on Accuracy', message:'Focus on answering words correctly first. Target an average of ≥ 60 to unlock Intermediate.', type:'info' };
-      } else if (this.level === 'intermediate') {
-        if (justUnlocked === 'expert' || (levelAvg >= 70 && this.spUnlockedLevels.expert))
-          rec = { label:'Advance to Expert & Beyond!', message:'Great! Your Intermediate average is '+levelAvg+'/100. Expert & Beyond is now unlocked!', type:'unlock' };
-        else if (levelAvg >= 50)
-          rec = { label:'Good Progress', message:'Keep improving! Reach an average of ≥ 70 to unlock Expert & Beyond (current: '+levelAvg+'/100).', type:'progress' };
+          rec = { label:'Focus on Accuracy', message:'Focus on answering correctly. Target avg ≥ 60 to unlock Intermediate.', type:'info' };
+      } else if (L === 'intermediate') {
+        if (unlocked === 'expert' || (avg >= 70 && U.expert))
+          rec = { label:'Advance to Expert!', message:'Great! Intermediate avg '+avg+'/100. Expert & Beyond is now unlocked!', type:'unlock' };
+        else if (avg >= 50)
+          rec = { label:'Good Progress', message:'Reach avg ≥ 70 to unlock Expert & Beyond (current: '+avg+'/100).', type:'progress' };
         else
-          rec = { label:'Maintain Intermediate', message:'Focus on speed and accuracy. Target an average of ≥ 70 to unlock Expert & Beyond.', type:'progress' };
+          rec = { label:'Maintain Intermediate', message:'Target avg ≥ 70 to unlock Expert & Beyond.', type:'progress' };
       } else {
-        if (levelAvg >= 75)
-          rec = { label:'Expert & Beyond — Exceptional!', message:'Outstanding performance (avg '+levelAvg+'/100). GBA is actively tracking your ability!', type:'unlock' };
-        else if (levelAvg >= 50)
-          rec = { label:'Keep Going', message:'Good Expert & Beyond progress (avg '+levelAvg+'/100). GBA is adjusting difficulty automatically.', type:'progress' };
+        if (avg >= 75)
+          rec = { label:'Expert — Exceptional!', message:'Outstanding Expert performance (avg '+avg+'/100). GBA is tracking your ability!', type:'unlock' };
+        else if (avg >= 50)
+          rec = { label:'Keep Going', message:'Good Expert progress (avg '+avg+'/100). GBA adjusting difficulty automatically.', type:'progress' };
         else
-          rec = { label:'Expert & Beyond — Focus', message:'GBA is measuring your ability. Focus on spelling accuracy to improve your score.', type:'info' };
+          rec = { label:'Expert — Focus', message:'GBA measuring your ability. Focus on spelling accuracy to improve.', type:'info' };
       }
       this.spDiffRecommendation = rec;
 
       fetch('{{ route('spelling.finish') }}', {
         method: 'POST',
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          duration_sec:    dur,
-          hints_used:      this.hintsUsed,
-          hints_available: this.hintsAvailable,
-        })
-      }).then(r => r.json()).then(j => {
-        if (j.theta !== undefined) {
-          this.gbaTheta    = j.theta;
-          this.gbaLdNext   = j.ld_next;
-          this.showGbaCard = true;
-        }
-      }).catch(() => {});
+        body: JSON.stringify({ duration_sec: dur, hints_used: this.hintsUsed, hints_available: this.hintsAvailable })
+      })
+      .then(r => r.json())
+      .then(j => {
+        if (j.theta !== undefined) { this.gbaTheta = j.theta; this.gbaLdNext = j.ld_next; this.showGbaCard = true; }
+      })
+      .catch(() => {});
     }
   }
 }
