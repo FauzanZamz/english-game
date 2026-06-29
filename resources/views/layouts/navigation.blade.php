@@ -10,8 +10,8 @@
                 <div class="hidden sm:flex items-center gap-1">
                     <a href="{{ route('spelling.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Spelling Bee</a>
                     <a href="{{ route('crossword.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Crossword</a>
-                    <a href="{{ route('leaderboard.spelling') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Leaderboard Spelling Bee</a>
-                    <a href="{{ route('leaderboard.crossword') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Leaderboard Crossword</a>
+                    <a href="{{ route('kamus.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">📖 Kamus</a>
+                    <a href="{{ route('leaderboard.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">🏆 Leaderboard</a>
                 </div>
                 @endauth
             </div>
@@ -64,8 +64,8 @@
             @auth
             <x-responsive-nav-link :href="route('spelling.index')" class="text-sky-800 hover:text-sky-900">Spelling Bee</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('crossword.index')" class="text-sky-800 hover:text-sky-900">Crossword</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('leaderboard.spelling')" class="text-sky-800 hover:text-sky-900">Leaderboard Spelling Bee</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('leaderboard.crossword')" class="text-sky-800 hover:text-sky-900">Leaderboard Crossword</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('kamus.index')" class="text-sky-800 hover:text-sky-900">📖 Kamus</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('leaderboard.index')" class="text-sky-800 hover:text-sky-900">🏆 Leaderboard</x-responsive-nav-link>
             @endauth
         </div>
         @auth

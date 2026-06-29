@@ -6,6 +6,7 @@ use App\Http\Controllers\SpellingBeeController;
 use App\Http\Controllers\CrosswordController;
 use App\Http\Controllers\LeaderboardController;
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\DictionaryController;
 
 Route::redirect('/', '/dashboard');
 
@@ -27,7 +28,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/crossword/submit', [CrosswordController::class, 'submit'])->name('crossword.submit');
     Route::post('/crossword/unlock', [CrosswordController::class, 'unlockLevel'])->name('crossword.unlock');
 
-    // Leaderboard
+    // Kamus (Dictionary) — search HARUS sebelum {word} agar tidak tertangkap wildcard
+    Route::get('/kamus', [DictionaryController::class, 'index'])->name('kamus.index');
+    Route::get('/kamus/search', [DictionaryController::class, 'search'])->name('kamus.search');
+    Route::get('/kamus/{word}', [DictionaryController::class, 'show'])->name('kamus.show');
+
+    // Leaderboard (unified)
+    Route::get('/leaderboard', [LeaderboardController::class, 'index'])->name('leaderboard.index');
+    // Legacy redirects — agar link lama di Spelling Bee tidak 404
     Route::get('/leaderboard/spelling', [LeaderboardController::class, 'spelling'])->name('leaderboard.spelling');
     Route::get('/leaderboard/crossword', [LeaderboardController::class, 'crossword'])->name('leaderboard.crossword');
 

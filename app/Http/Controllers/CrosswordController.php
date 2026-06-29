@@ -202,6 +202,7 @@ class CrosswordController extends Controller
         $play   = Play::create([
             'user_id'      => $req->user()->id,
             'game_id'      => $gameId,
+            'level'        => session('crossword_level', 'beginner'),
             'score'        => $score,
             'duration_sec' => $durationSec,
             'ld_target'    => $ldTarget,

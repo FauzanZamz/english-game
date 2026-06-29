@@ -294,9 +294,9 @@
               </div>
             </div>
 
-            <a href="{{ route('leaderboard.spelling') }}"
+            <a :href="'{{ route('leaderboard.index') }}?game=spelling-bee&level=' + level"
                class="inline-block px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700">
-              View Leaderboard
+              🏆 Leaderboard
             </a>
           </div>
         </template>

@@ -310,11 +310,11 @@ option:disabled { color: #94a3b8; }
 .diff-medium { background: #fffbeb; color: #92400e; border-color: #fcd34d; }
 .diff-hard   { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
 
-/* ── AI: Bayes warning cell ── */
+/* ── AI: Bayes warning cell ── (disabled — Naive Bayes not active)
 .cw-cell:not(:disabled).bayes-warn {
   box-shadow: 0 0 0 2px #f59e0b, inset 0 0 0 1px #fef3c7;
   background: #fffbeb; color: #78350f;
-}
+} */
 
 /* ── Pan-zoom grid viewport ── */
 #cw-panzoom-viewport {
@@ -432,6 +432,12 @@ option:disabled { color: #94a3b8; }
           <button @click="submitted=false; clearGrid();" x-show="submitted" class="btn-primary btn-ghost">
             🔄 Try Again
           </button>
+          <a x-show="submitted"
+             :href="'{{ route('leaderboard.index') }}?game=crossword&level=' + level"
+             class="btn-primary"
+             style="background:#faf5ff;color:#7c3aed;border:1.5px solid #c4b5fd;text-decoration:none">
+            🏆 Leaderboard
+          </a>
           {{-- RL unlock: jump to newly unlocked level --}}
           <button x-show="newLevelUnlocked && level !== newLevelUnlocked"
                   @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
@@ -587,7 +593,7 @@ option:disabled { color: #94a3b8; }
                           'active-word'   : isActiveCell(r,c) && !isCursorCell(r,c),
                           'cell-correct'  : submitted && cellResult[r+','+c] === 'ok',
                           'cell-incorrect': submitted && cellResult[r+','+c] === 'bad',
-                          'bayes-warn'    : !submitted && bayesWarn[r+','+c],
+                          /* 'bayes-warn': !submitted && bayesWarn[r+','+c], */
                           'hint-letter'   : hintCells[r+','+c]
                         }"
                         :disabled="!solution[r] || !solution[r][c]"
@@ -753,6 +759,39 @@ option:disabled { color: #94a3b8; }
 <script>
 function crossword() {
   return {
+    /* ══════════════════════════════════════════════════════════════
+       RULE-BASED SYSTEM — Knowledge Base
+       Semua aturan permainan Crossword didefinisikan terpusat di sini.
+       Inference Engine: buildHintCells(), onCell(),
+                         onKeydown(), submitPuzzle()
+       ══════════════════════════════════════════════════════════════ */
+    CROSSWORD_RULES: {
+      // R1 — Aturan Scaffolding Bantuan (hint letters per level)
+      hintRatio:    { beginner: 0.30, intermediate: 0.20, expert: 0.15 },
+      hintsAllowed: { beginner: 5,    intermediate: 3,    expert: 2    },
+
+      // R2 — Aturan Validasi Input
+      allowedPattern:   /^[A-Z]$/,
+      hintCellReadOnly: true,
+      maxCharsPerCell:  1,
+
+      // R3 — Aturan Navigasi Grid
+      // (diimplementasikan langsung di fungsi onKeydown(),
+      //  tidak memerlukan parameter konstanta tambahan)
+
+      // R4 — Aturan Evaluasi Jawaban
+      cellResultMap:    { correct: 'ok', incorrect: 'bad' },
+      perfectScore:     100,
+
+      // R5 — Aturan Unlock Level
+      unlockThreshold:  { intermediate: 60, expert: 70 },
+      sessionWindow:    3,
+      minAccuracyGate:  0.30,
+      perfCapBelowGate: 20,
+
+    },
+
+
     /* state */
     theme: '{{ $themes[0]->slug ?? "animals" }}',
     level: 'beginner',
@@ -793,12 +832,9 @@ function crossword() {
     newLevelUnlocked: null,   /* 'intermediate' | 'expert' | null */
     diffRecommendation: null,
 
-    /* ══ AI Feature 3: Naive Bayes Typo Detection ══ */
-    bayesWarn: {},       /* "r,c" -> true if suspicious letter */
-    /* English bigram frequency table — P(second | first).
-       Built from corpus statistics. Only storing top plausible
-       successors per letter; anything not in list is low-probability. */
-    BIGRAMS: {
+    /* ══ AI Feature 3: Naive Bayes Typo Detection ══ (disabled — not needed for now) */
+    bayesWarn: {},   /* warning state — kept so template references don't break */
+    /* BIGRAMS: {
       A:['B','C','D','F','G','H','I','L','M','N','P','R','S','T','U','V','W','X','Y'],
       B:['A','E','I','L','O','R','U','Y'],
       C:['A','E','H','I','K','L','O','R','T','U'],
@@ -825,7 +861,7 @@ function crossword() {
       X:['A','I','P','T'],
       Y:['A','E','I','O'],
       Z:['A','E','I','O'],
-    },
+    }, */
 
     /* ── level change guard (prevent selecting locked level) ── */
     onLevelChange() {
@@ -1086,9 +1122,7 @@ function crossword() {
       /* immutably update row so Alpine detects change */
       const newRow=[...this.grid[r]]; newRow[c]=val; this.grid[r]=newRow;
 
-      /* ══ AI Feature 3: Naive Bayes Typo Detection ══
-         Check P(val | prevLetter) against the bigram table.
-         If prevLetter is known and val is not a plausible successor → warn. */
+      /* ══ AI Feature 3: Naive Bayes Typo Detection ══ (disabled — not needed for now)
       if(val){
         const key=`${r},${c}`;
         const prevLetter=this.getPrevLetter(r,c);
@@ -1100,17 +1134,16 @@ function crossword() {
           else delete newWarn[key];
           this.bayesWarn=newWarn;
         } else {
-          /* no prev letter context — remove any warning */
           const newWarn={...this.bayesWarn};
           delete newWarn[key];
           this.bayesWarn=newWarn;
         }
       } else {
-        /* cell cleared — remove warning */
         const newWarn={...this.bayesWarn};
         delete newWarn[`${r},${c}`];
         this.bayesWarn=newWarn;
       }
+      */
 
       if(val){
         const coord=this.coordMap[`${r},${c}`]||{};
@@ -1123,7 +1156,7 @@ function crossword() {
       }
     },
 
-    /* ── Bayes helper: get previous letter in current direction ── */
+    /* ── Bayes helper: get previous letter in current direction ── (disabled)
     getPrevLetter(r,c){
       const dir=this.lastDirection;
       let pr=r,pc=c;
@@ -1131,6 +1164,7 @@ function crossword() {
       if(pr<0||pr>=this.size||pc<0||pc>=this.size) return null;
       return (this.grid[pr]&&this.grid[pr][pc])||null;
     },
+    */
 
     /* ── keyboard ── */
     onKeydown(r,c,e){

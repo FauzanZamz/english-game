@@ -182,6 +182,7 @@ class SpellingBeeController extends Controller
         $play   = Play::create([
             'user_id'      => $req->user()->id,
             'game_id'      => $gameId,
+            'level'        => session('spelling_level', 'beginner'),
             'score'        => max(0, $finalScore),
             'duration_sec' => max(0, $durationSec),
             'ld_target'    => $ldTarget,

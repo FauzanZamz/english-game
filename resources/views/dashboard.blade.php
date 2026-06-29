@@ -44,14 +44,31 @@
             </span>
         </div>
     </a>
+
+    <!-- Kamus Card -->
+    <a href="{{ route('kamus.index') }}"
+        class="group rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border shadow hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 block">
+        <div class="flex items-start gap-4">
+            <div class="text-4xl transition-transform duration-300 group-hover:scale-110">📖</div>
+            <div>
+                <h2 class="text-xl font-bold text-emerald-700 group-hover:text-emerald-800 transition-colors">Kamus</h2>
+                <p class="text-emerald-900/70 text-sm mt-1">Cari kata, lihat definisi & ringkasan Wikipedia.</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs border transition-all duration-200 group-hover:bg-emerald-200">
+                Definisi & Wikipedia
+            </span>
+        </div>
+    </a>
 </div>
 
-<!-- Leaderboards -->
-<div class="mt-8 flex flex-wrap gap-3">
-    <a href="{{ route('leaderboard.spelling') }}"
-        class="px-4 py-2 rounded-full bg-fuchsia-100 text-fuchsia-700 border hover:bg-fuchsia-200 transition-all duration-200 transform hover:scale-105">🏆 Leaderboard Spelling</a>
-    <a href="{{ route('leaderboard.crossword') }}"
-        class="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 border hover:bg-emerald-200 transition-all duration-200 transform hover:scale-105">🏆 Leaderboard Crossword</a>
+<!-- Leaderboard -->
+<div class="mt-8">
+    <a href="{{ route('leaderboard.index') }}"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-fuchsia-100 to-violet-100 text-fuchsia-700 border border-fuchsia-200 hover:from-fuchsia-200 hover:to-violet-200 transition-all duration-200 transform hover:scale-105 font-semibold shadow-sm">
+        🏆 Leaderboard
+    </a>
 </div>
   <style>
     @keyframes fade-in {
