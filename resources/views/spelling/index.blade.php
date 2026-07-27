@@ -143,7 +143,7 @@
               </ul>
 
               <div class="mt-4 flex flex-col sm:flex-row gap-2">
-                <input x-model="answer" placeholder="Ketik ejaan kata…"
+                <input x-model="answer" placeholder="Type the spelling…"
                        class="w-full sm:flex-1 rounded-xl border px-3 py-2 focus:ring-sky-300 focus:border-sky-400 bg-white/90"
                        @keyup.enter="submit()" x-ref="answerInput">
                 <div class="flex gap-2">

@@ -429,10 +429,7 @@ option:disabled { color: #94a3b8; }
           <button @click="submitPuzzle()" x-show="grid.length && !submitted" class="btn-primary btn-green">
             ✅ Submit
           </button>
-          <button @click="submitted=false; clearGrid();" x-show="submitted" class="btn-primary btn-ghost">
-            🔄 Try Again
-          </button>
-          <a x-show="submitted"
+<a x-show="submitted"
              :href="'{{ route('leaderboard.index') }}?game=crossword&level=' + level"
              class="btn-primary"
              style="background:#faf5ff;color:#7c3aed;border:1.5px solid #c4b5fd;text-decoration:none">
@@ -443,7 +440,7 @@ option:disabled { color: #94a3b8; }
                   @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
                   class="btn-primary"
                   :class="newLevelUnlocked === 'expert' ? 'btn-unlock-expert' : 'btn-unlock-inter'"
-                  :title="'AI: kamu siap naik ke ' + (newLevelUnlocked === 'intermediate' ? 'Intermediate' : 'Expert & Beyond') + '!'">
+                  :title="'AI: you are ready to advance to ' + (newLevelUnlocked === 'intermediate' ? 'Intermediate' : 'Expert & Beyond') + '!'">
             <span x-text="newLevelUnlocked === 'intermediate' ? '🌿 Go Intermediate!' : '🔥 Go Expert & Beyond!'"></span>
           </button>
         </div>
@@ -465,37 +462,37 @@ option:disabled { color: #94a3b8; }
           <div>
             <p style="margin:0;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8">Hasil Puzzle</p>
             <p style="margin:0;font-size:0.92rem;font-weight:700;color:#1e293b"
-               x-text="resultPerfect ? 'Sempurna! Semua kata benar.' : 'Puzzle selesai. Lihat rincian di bawah.'"></p>
+               x-text="resultPerfect ? 'Perfect! All words correct.' : 'Puzzle done. See details below.'"></p>
           </div>
         </div>
 
-        {{-- Stats: Skor · Kata Benar · Waktu --}}
+        {{-- Stats: Score · Words Correct · Time --}}
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px;background:#f8fafc;border-radius:10px;margin-bottom:14px">
           <div style="text-align:center">
             <div style="font-size:1.5rem;font-weight:800;color:#6366f1" x-text="score"></div>
-            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Skor / 100</div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Score / 100</div>
           </div>
           <div style="text-align:center;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
             <div style="font-size:1.5rem;font-weight:800;color:#22c55e" x-text="resultWordsCorrect + '/' + resultTotalWords"></div>
-            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Kata Benar</div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Words Correct</div>
           </div>
           <div style="text-align:center">
             <div style="font-size:1.5rem;font-weight:800;color:#f59e0b" x-text="timerDisplay"></div>
-            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Waktu</div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-top:2px">Time</div>
           </div>
         </div>
 
-        {{-- GBA Assessment (tampil bila data tersedia) --}}
+        {{-- GBA Assessment --}}
         <div x-show="showGbaCard" style="border-top:1px solid #e2e8f0;padding-top:12px;margin-bottom:12px">
           <p style="margin:0 0 8px;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1">📊 Game-Based Assessment</p>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div style="text-align:center;background:#eef2ff;border-radius:8px;padding:10px">
               <div style="font-size:1.25rem;font-weight:800;color:#4f46e5" x-text="(gbaTheta * 100).toFixed(1) + '%'"></div>
-              <div style="font-size:0.65rem;color:#818cf8;margin-top:2px">Kemampuan Anda (θ Awal 0.30)  </div>
+              <div style="font-size:0.65rem;color:#818cf8;margin-top:2px">Your Ability (θ, baseline 0.30)</div>
             </div>
             <div style="text-align:center;background:#f5f3ff;border-radius:8px;padding:10px">
               <div style="font-size:1.25rem;font-weight:800;color:#7c3aed" x-text="(gbaLdNext * 100).toFixed(1) + '%'"></div>
-              <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">Difficulty Berikutnya Ditingkatkan</div>
+              <div style="font-size:0.65rem;color:#a78bfa;margin-top:2px">Next Difficulty</div>
             </div>
           </div>
         </div>
@@ -521,19 +518,19 @@ option:disabled { color: #94a3b8; }
         <span style="font-size:1.8rem" x-text="newLevelUnlocked === 'intermediate' ? '🌿' : '🔥'"></span>
         <div style="flex:1">
           <p style="margin:0 0 3px;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#15803d"
-             x-show="newLevelUnlocked === 'intermediate'">Level Baru Terbuka!</p>
+             x-show="newLevelUnlocked === 'intermediate'">New Level Unlocked!</p>
           <p style="margin:0 0 3px;font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#b91c1c"
-             x-show="newLevelUnlocked === 'expert'">Level Baru Terbuka!</p>
+             x-show="newLevelUnlocked === 'expert'">New Level Unlocked!</p>
           <p style="margin:0;font-size:0.88rem;font-weight:600;color:#1e293b"
              x-text="newLevelUnlocked === 'intermediate'
-               ? 'Selamat! Performa kamu cukup konsisten. Level Intermediate kini tersedia!'
-               : 'Luar biasa! Kamu menguasai Intermediate. Level Expert & Beyond kini tersedia!'"></p>
+               ? 'Great job! Your performance is consistent. Intermediate level is now available!'
+               : 'Amazing! You have mastered Intermediate. Expert & Beyond level is now available!'"></p>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0">
           <button @click="level = newLevelUnlocked; newLevelUnlocked = null; generate();"
                   class="btn-primary"
                   :class="newLevelUnlocked === 'expert' ? 'btn-unlock-expert' : 'btn-unlock-inter'">
-            Main Sekarang
+            Play Now
           </button>
           <button @click="newLevelUnlocked = null" class="btn-primary btn-ghost" style="padding:0.45rem 0.9rem">
             Nanti
@@ -615,7 +612,7 @@ option:disabled { color: #94a3b8; }
               <div style="flex:1;min-width:180px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:10px 14px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
                   <p style="margin:0;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#3b82f6">➡ Across</p>
-                  <button @click="fetchWikiImage(activeClues.across, definitions[activeClues.across])" class="wiki-img-btn" title="Lihat gambar Wikipedia" style="border-color:#bfdbfe">🖼 Gambar</button>
+                  <button @click="fetchWikiImage(activeClues.across, definitions[activeClues.across])" class="wiki-img-btn" title="See Wikipedia image" style="border-color:#bfdbfe">🖼 Image</button>
                 </div>
                 <p style="margin:0;font-size:0.82rem;color:#1e3a5f;line-height:1.5" x-text="definitions[activeClues.across]"></p>
               </div>
@@ -624,7 +621,7 @@ option:disabled { color: #94a3b8; }
               <div style="flex:1;min-width:180px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:10px 14px">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
                   <p style="margin:0;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#22c55e">⬇ Down</p>
-                  <button @click="fetchWikiImage(activeClues.down, definitions[activeClues.down])" class="wiki-img-btn" title="Lihat gambar Wikipedia" style="border-color:#86efac">🖼 Gambar</button>
+                  <button @click="fetchWikiImage(activeClues.down, definitions[activeClues.down])" class="wiki-img-btn" title="See Wikipedia image" style="border-color:#86efac">🖼 Image</button>
                 </div>
                 <p style="margin:0;font-size:0.82rem;color:#14532d;line-height:1.5" x-text="definitions[activeClues.down]"></p>
               </div>
@@ -644,9 +641,13 @@ option:disabled { color: #94a3b8; }
                 <div class="clue-item"
                      :class="{ 'clue-across-active': activeClues.across === clue.word }"
                      @click="jumpToWord(clue.word, 'across')">
-                  <strong x-text="clue.num + '.'"></strong>
-                  <span x-text="' ' + clue.def" style="flex:1"></span>
-                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Lihat gambar Wikipedia">🖼</button>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:flex-start;gap:4px">
+                      <strong x-text="clue.num + '.'"></strong>
+                      <span x-text="clue.def" style="flex:1"></span>
+                    </div>
+                  </div>
+                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="See Wikipedia image" style="flex-shrink:0">🖼</button>
                 </div>
               </template>
             </div>
@@ -660,9 +661,13 @@ option:disabled { color: #94a3b8; }
                 <div class="clue-item"
                      :class="{ 'clue-down-active': activeClues.down === clue.word }"
                      @click="jumpToWord(clue.word, 'down')">
-                  <strong x-text="clue.num + '.'"></strong>
-                  <span x-text="' ' + clue.def" style="flex:1"></span>
-                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="Lihat gambar Wikipedia">🖼</button>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:flex-start;gap:4px">
+                      <strong x-text="clue.num + '.'"></strong>
+                      <span x-text="clue.def" style="flex:1"></span>
+                    </div>
+                  </div>
+                  <button @click.stop="fetchWikiImage(clue.word, clue.def)" class="wiki-img-btn" title="See Wikipedia image" style="flex-shrink:0">🖼</button>
                 </div>
               </template>
             </div>
@@ -938,9 +943,9 @@ function crossword() {
            1. calls array_reverse($grid) — row 0 = top visually
            2. remaps all position rows so down-words increase downward
            Use j.grid and j.positions exactly as received. */
-        this.solution   = j.grid;
-        this.definitions= j.definitions||{};
-        this.positions  = j.positions||{};
+        this.solution      = j.grid;
+        this.definitions   = j.definitions||{};
+        this.positions     = j.positions||{};
         this.grid       = this.solution.map(row=>row.map(cell=>cell?'':null));
         this.buildCoordMap();
         this.buildCellNumbers();
@@ -1353,7 +1358,7 @@ function crossword() {
         this.resultPerfect = (j.wordsCorrect === j.totalWords);
         this.resultWordsCorrect = j.wordsCorrect;
         this.resultTotalWords   = j.totalWords;
-        this.resultMsg = `${j.wordsCorrect}/${j.totalWords} kata benar · ${j.score}/100 pts · Waktu: ${this.timerDisplay}`;
+        this.resultMsg = `${j.wordsCorrect}/${j.totalWords} words correct · ${j.score}/100 pts · Time: ${this.timerDisplay}`;
 
         /* ══ RL Adaptive Difficulty (3-level) ══
            perf_score (0–100):
@@ -1404,30 +1409,30 @@ function crossword() {
         let rec;
         if (this.level === 'beginner') {
           if (justUnlocked === 'intermediate' || (levelAvg >= 60 && this.unlockedLevels.intermediate))
-            rec = { label:'Naik ke Intermediate!', message:'Bagus! Rata-rata skor Beginner kamu '+levelAvg+'/100. Level Intermediate sudah terbuka!', badgeClass:'diff-medium' };
+            rec = { label:'Advance to Intermediate!', message:'Great! Your Beginner avg is '+levelAvg+'/100. Intermediate level is now unlocked!', badgeClass:'diff-medium' };
           else if (levelAvg >= 40)
-            rec = { label:'Terus Berlatih', message:'Konsistensi bagus. Raih rata-rata ≥ 60 untuk membuka Intermediate (sekarang: '+levelAvg+'/100).', badgeClass:'diff-easy' };
+            rec = { label:'Keep Practicing', message:'Good consistency. Reach avg ≥ 60 to unlock Intermediate (current: '+levelAvg+'/100).', badgeClass:'diff-easy' };
           else
-            rec = { label:'Fokus Akurasi', message:'Fokus isi jawaban yang benar dulu. Target rata-rata ≥ 60 untuk unlock Intermediate.', badgeClass:'diff-easy' };
+            rec = { label:'Focus on Accuracy', message:'Try to get more answers correct first. Target avg ≥ 60 to unlock Intermediate.', badgeClass:'diff-easy' };
         } else if (this.level === 'intermediate') {
           if (justUnlocked === 'expert' || (levelAvg >= 70 && this.unlockedLevels.expert))
-            rec = { label:'Naik ke Expert & Beyond!', message:'Hebat! Rata-rata Intermediate kamu '+levelAvg+'/100. Level Expert & Beyond sudah terbuka!', badgeClass:'diff-hard' };
+            rec = { label:'Advance to Expert & Beyond!', message:'Amazing! Your Intermediate avg is '+levelAvg+'/100. Expert & Beyond is now unlocked!', badgeClass:'diff-hard' };
           else if (levelAvg >= 50)
-            rec = { label:'Progress Bagus', message:'Terus tingkatkan! Raih rata-rata ≥ 70 untuk membuka Expert & Beyond (sekarang: '+levelAvg+'/100).', badgeClass:'diff-medium' };
+            rec = { label:'Good Progress', message:'Keep it up! Reach avg ≥ 70 to unlock Expert & Beyond (current: '+levelAvg+'/100).', badgeClass:'diff-medium' };
           else
-            rec = { label:'Pertahankan Intermediate', message:'Fokus pada kecepatan dan akurasi. Target rata-rata ≥ 70 untuk unlock Expert & Beyond.', badgeClass:'diff-medium' };
+            rec = { label:'Stay at Intermediate', message:'Focus on speed and accuracy. Target avg ≥ 70 to unlock Expert & Beyond.', badgeClass:'diff-medium' };
         } else { // expert
           if (levelAvg >= 75)
-            rec = { label:'Expert & Beyond — Luar Biasa!', message:'Performa Expert & Beyond kamu sangat tinggi (avg '+levelAvg+'/100). GBA aktif memantau kemampuanmu!', badgeClass:'diff-hard' };
+            rec = { label:'Expert & Beyond — Outstanding!', message:'Your Expert & Beyond performance is excellent (avg '+levelAvg+'/100). GBA is tracking your ability!', badgeClass:'diff-hard' };
           else if (levelAvg >= 50)
-            rec = { label:'Terus Tingkatkan', message:'Progres Expert & Beyond bagus (avg '+levelAvg+'/100). GBA menyesuaikan puzzle otomatis.', badgeClass:'diff-medium' };
+            rec = { label:'Keep Improving', message:'Good Expert & Beyond progress (avg '+levelAvg+'/100). GBA is adjusting difficulty automatically.', badgeClass:'diff-medium' };
           else
-            rec = { label:'Expert & Beyond — Fokus Akurasi', message:'Tingkat ini menantang. GBA sedang mengukur kemampuanmu — fokus akurasi dulu.', badgeClass:'diff-easy' };
+            rec = { label:'Expert & Beyond — Focus on Accuracy', message:'This level is challenging. GBA is measuring your ability — focus on accuracy first.', badgeClass:'diff-easy' };
         }
         this.diffRecommendation = rec;
         this.backspaceCount = 0;
 
-        // GBA: update estimasi kemampuan dari server
+        // GBA: update ability estimate from server
         if (j.theta !== undefined) {
           this.gbaTheta    = j.theta;
           this.gbaLdNext   = j.ld_next;

@@ -9,7 +9,7 @@
     </div>
     <div>
       <h1 class="text-2xl font-extrabold text-slate-800">Leaderboard</h1>
-      <p class="text-sm text-slate-500">Top 20 pemain terbaik per game & difficulty.</p>
+      <p class="text-sm text-slate-500">Top 20 best players per game & difficulty.</p>
     </div>
   </div>
 
@@ -55,7 +55,7 @@
 
   {{-- ── Active context pill ── --}}
   <div class="mb-4 text-sm text-slate-500">
-    Menampilkan top 20 —
+    Showing top 20 —
     <span class="font-semibold text-slate-700">{{ $game->name }}</span>
     ·
     <span class="font-semibold text-slate-700">{{ $levelLabels[$level] }}</span>
@@ -70,10 +70,10 @@
             {{ $gameSlug === 'spelling-bee' ? 'from-amber-50 to-yellow-50' : 'from-sky-50 to-indigo-50' }}
             border-b">
             <th class="px-5 py-3 text-left font-semibold text-slate-600 w-14">Rank</th>
-            <th class="px-5 py-3 text-left font-semibold text-slate-600">Pemain</th>
-            <th class="px-5 py-3 text-center font-semibold text-slate-600">Skor</th>
-            <th class="px-5 py-3 text-center font-semibold text-slate-600 hidden sm:table-cell">Waktu</th>
-            <th class="px-5 py-3 text-center font-semibold text-slate-600 hidden md:table-cell">Tanggal</th>
+            <th class="px-5 py-3 text-left font-semibold text-slate-600">Player</th>
+            <th class="px-5 py-3 text-center font-semibold text-slate-600">Score</th>
+            <th class="px-5 py-3 text-center font-semibold text-slate-600 hidden sm:table-cell">Time</th>
+            <th class="px-5 py-3 text-center font-semibold text-slate-600 hidden md:table-cell">Date</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -136,21 +136,21 @@
     @else
       <div class="py-16 text-center">
         <div class="text-5xl mb-3">🏅</div>
-        <h3 class="text-lg font-bold text-slate-600">Belum ada data</h3>
+        <h3 class="text-lg font-bold text-slate-600">No data yet</h3>
         <p class="mt-1 text-sm text-slate-400">
-          Belum ada pemain yang menyelesaikan
+          No players have completed
           <span class="font-semibold">{{ $game->name }}</span>
           di level <span class="font-semibold">{{ $levelLabels[$level] }}</span>.
         </p>
         @if($gameSlug === 'spelling-bee')
           <a href="{{ route('spelling.index') }}"
              class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition">
-            Mainkan Spelling Bee
+            Play Spelling Bee
           </a>
         @else
           <a href="{{ route('crossword.index') }}"
              class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-600 transition">
-            Mainkan Crossword
+            Play Crossword
           </a>
         @endif
       </div>

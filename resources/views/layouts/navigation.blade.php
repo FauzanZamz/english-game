@@ -2,15 +2,15 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-6">
-                <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm bg-gradient-to-r from-pink-50 to-blue-50 hover:shadow-md transition">
-                    <span class="text-xl">🪄</span>
+                <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-2 py-1 rounded-full border shadow-sm bg-white hover:shadow-md transition">
+                    <img src="{{ asset('images/logo_englishedugame.png') }}" alt="WordPlay" class="h-9 w-9 rounded-full object-cover">
                     <span class="font-bold text-sky-900">EnglishEdu</span>
                 </a>
                 @auth
                 <div class="hidden sm:flex items-center gap-1">
-                    <a href="{{ route('spelling.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Spelling Bee</a>
-                    <a href="{{ route('crossword.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">Crossword</a>
-                    <a href="{{ route('kamus.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">📖 Kamus</a>
+                    <a href="{{ route('spelling.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">🐝 Spelling Bee</a>
+                    <a href="{{ route('crossword.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">🧩 Crossword</a>
+                    <a href="{{ route('kamus.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">📖 Dictionary</a>
                     <a href="{{ route('leaderboard.index') }}" class="text-sky-800 hover:text-sky-900 text-sm font-medium px-3 py-2 rounded-md hover:bg-sky-50 transition">🏆 Leaderboard</a>
                 </div>
                 @endauth
@@ -62,9 +62,9 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             @auth
-            <x-responsive-nav-link :href="route('spelling.index')" class="text-sky-800 hover:text-sky-900">Spelling Bee</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('crossword.index')" class="text-sky-800 hover:text-sky-900">Crossword</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('kamus.index')" class="text-sky-800 hover:text-sky-900">📖 Kamus</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('spelling.index')" class="text-sky-800 hover:text-sky-900">🐝 Spelling Bee</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('crossword.index')" class="text-sky-800 hover:text-sky-900">🧩 Crossword</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('kamus.index')" class="text-sky-800 hover:text-sky-900">📖 Dictionary</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('leaderboard.index')" class="text-sky-800 hover:text-sky-900">🏆 Leaderboard</x-responsive-nav-link>
             @endauth
         </div>

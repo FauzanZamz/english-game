@@ -6,8 +6,12 @@
         <div class="absolute -bottom-10 -left-10 w-52 h-52 rounded-full bg-sky-200/50 animate-pulse-slow"></div>
 
         <div class="relative">
-          <h1 class="text-3xl font-extrabold text-sky-900 animate-fade-in">Selamat datang! 🌈</h1>
-          <p class="mt-1 text-sky-800/80 animate-fade-in animation-delay-200">Pilih permainan untuk mulai belajar dengan cara yang menyenangkan.</p>
+          <div class="flex justify-center mb-4 animate-fade-in">
+            <!--img src="{{ asset('images/logo_englishedugame.png') }}" alt="Word Play Logo"
+                 class="h-32 w-32 object-contain drop-shadow-md"-->
+          </div>
+          <h1 class="text-3xl font-extrabold text-sky-900 animate-fade-in text-center">Welcome! 🌈</h1>
+          <p class="mt-1 text-sky-800/80 animate-fade-in animation-delay-200 text-center">Choose a game and start learning the fun way.</p>
 
           <!-- Single Column Layout -->
 <div class="mt-8 space-y-6">
@@ -18,12 +22,12 @@
             <div class="text-4xl transition-transform duration-300 group-hover:scale-110">🎤</div>
             <div>
                 <h2 class="text-xl font-bold text-amber-700 group-hover:text-amber-800 transition-colors">Spelling Bee</h2>
-                <p class="text-amber-900/70 text-sm mt-1">Dengar, eja, jawab! Dukungan TTS & voice input.</p>
+                <p class="text-amber-900/70 text-sm mt-1">Listen, spell, and answer! Supports TTS & voice input.</p>
             </div>
         </div>
         <div class="mt-4">
             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs border transition-all duration-200 group-hover:bg-amber-200">
-                Level Beginner & Expert
+                Beginner · Intermediate · Expert
             </span>
         </div>
     </a>
@@ -35,29 +39,29 @@
             <div class="text-4xl transition-transform duration-300 group-hover:scale-110">🧩</div>
             <div>
                 <h2 class="text-xl font-bold text-sky-700 group-hover:text-sky-800 transition-colors">Crossword</h2>
-                <p class="text-sky-900/70 text-sm mt-1">Susun kata bertema, grid otomatis, skor per huruf.</p>
+                <p class="text-sky-900/70 text-sm mt-1">Fill themed word grids, auto-generated puzzles, scored by letter.</p>
             </div>
         </div>
         <div class="mt-4">
             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-xs border transition-all duration-200 group-hover:bg-sky-200">
-                Grid 12×12 / 15×15
+                12×12 / 15×15 Grid
             </span>
         </div>
     </a>
 
-    <!-- Kamus Card -->
+    <!-- Dictionary Card -->
     <a href="{{ route('kamus.index') }}"
         class="group rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border shadow hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 block">
         <div class="flex items-start gap-4">
             <div class="text-4xl transition-transform duration-300 group-hover:scale-110">📖</div>
             <div>
-                <h2 class="text-xl font-bold text-emerald-700 group-hover:text-emerald-800 transition-colors">Kamus</h2>
-                <p class="text-emerald-900/70 text-sm mt-1">Cari kata, lihat definisi & ringkasan Wikipedia.</p>
+                <h2 class="text-xl font-bold text-emerald-700 group-hover:text-emerald-800 transition-colors">Dictionary</h2>
+                <p class="text-emerald-900/70 text-sm mt-1">Search words, view definitions & Wikipedia summaries.</p>
             </div>
         </div>
         <div class="mt-4">
             <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs border transition-all duration-200 group-hover:bg-emerald-200">
-                Definisi & Wikipedia
+                Definitions & Wikipedia
             </span>
         </div>
     </a>

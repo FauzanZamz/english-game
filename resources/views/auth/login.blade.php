@@ -7,7 +7,7 @@
                     <div class="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/80 shadow border">
                         <img src="{{ asset('images/logo_englishedugame.png') }}" alt="EnglishEdu Logo" style="width: 144px !important; height: 144px !important;" class="rounded-full object-cover">
                     </div>
-                    <h1 class="mt-4 text-2xl font-extrabold text-sky-900">Welcome To WordPlay!</h1>
+                    <h1 class="mt-4 text-2xl font-extrabold text-sky-900">Welcome To EnglishEdu!</h1>
                     <p class="text-sm text-sky-700/80">Practice your English skills with fun games!</p>
                 </div>
 

@@ -13,7 +13,7 @@
      class="mt-4 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl
             bg-gradient-to-r from-emerald-500 to-sky-500 text-white text-sm font-semibold
             shadow hover:from-emerald-600 hover:to-sky-600 transition">
-    Lihat Detail
+    View Details
     <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
     </svg>

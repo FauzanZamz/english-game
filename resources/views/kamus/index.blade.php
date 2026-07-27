@@ -8,8 +8,8 @@
           <span class="text-2xl">📖</span>
         </div>
         <div>
-          <h1 class="text-2xl font-extrabold text-slate-800">Kamus</h1>
-          <p class="text-sm text-slate-500">Cari kata, lihat definisi & ringkasan Wikipedia.</p>
+          <h1 class="text-2xl font-extrabold text-slate-800">Dictionary</h1>
+          <p class="text-sm text-slate-500">Search words, view definitions & Wikipedia summaries.</p>
         </div>
       </div>
 
@@ -20,14 +20,14 @@
           <div class="relative flex-1">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
             <input type="text" name="q" value="{{ $query }}"
-                   placeholder="Ketik kata yang ingin dicari…"
+                   placeholder="Type a word to search…"
                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-slate-700
                           focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 transition">
           </div>
           <button type="submit"
                   class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-sky-500 text-white font-semibold
                          shadow hover:shadow-md hover:from-emerald-600 hover:to-sky-600 transition">
-            Cari
+            Search
           </button>
         </div>
       </form>
@@ -39,7 +39,7 @@
                   {{ is_null($activeSlug) && is_null($words)
                        ? 'bg-emerald-500 text-white border-emerald-500 shadow'
                        : 'bg-white text-slate-600 border-slate-200 hover:bg-emerald-50 hover:text-emerald-700' }}">
-          Semua Tema
+          All Themes
         </a>
         @foreach($themes as $theme)
           <a href="{{ route('kamus.search', ['theme' => $theme->slug] + ($query !== '' ? ['q' => $query] : [])) }}"
@@ -56,9 +56,9 @@
         {{-- ════════ MODE: hasil pencarian ════════ --}}
         <div class="mb-4 text-sm text-slate-500">
           @if($query !== '')
-            Hasil untuk <span class="font-semibold text-slate-700">"{{ $query }}"</span> —
+            Results for <span class="font-semibold text-slate-700">"{{ $query }}"</span> —
           @endif
-          {{ $words->total() }} kata ditemukan.
+          {{ $words->total() }} word(s) found.
         </div>
 
         @if($words->count() > 0)
@@ -89,7 +89,7 @@
                 <div class="flex items-center gap-2 mb-3">
                   <h2 class="text-lg font-bold text-slate-700">{{ $theme->name }}</h2>
                   <span class="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs font-semibold">
-                    {{ $theme->words->count() }} kata
+                    {{ $theme->words->count() }} word(s)
                   </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
